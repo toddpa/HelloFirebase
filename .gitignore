@@ -67,3 +67,9 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Vite build output
+dist/
+
+# Firebase service account key
+service-account.json
