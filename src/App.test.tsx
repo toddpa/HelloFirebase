@@ -1,39 +1,67 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import { vi } from "vitest";
 import App from "./App";
+import { useAuth } from "./auth/useAuth";
+
+vi.mock("./auth/useAuth", () => ({
+  useAuth: vi.fn(),
+}));
 
 describe("App", () => {
-  it("renders the page copy", () => {
+  it("renders the loading state", () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      loading: true,
+      isAuthenticated: false,
+      errorMessage: null,
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    });
+
     render(<App />);
 
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Show Development Log" })
+      screen.getByText("Checking your sign-in status...")
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText("This app was built entirely from an iPad.")
-    ).not.toBeInTheDocument();
   });
 
-  it("toggles the development log when clicking the button", () => {
+  it("renders the signed out state", () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      loading: false,
+      isAuthenticated: false,
+      errorMessage: "Authentication failed.",
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    });
+
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Show Development Log" }));
-
     expect(
-      screen.getByText("This app was built entirely from an iPad.")
+      screen.getByRole("button", { name: "Sign in with Google" })
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("We are now using TypeScript to implement this project.")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Hide Development Log" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Authentication failed.");
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "Hide Development Log" }));
+  it("renders the signed in state", () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        uid: "123",
+        displayName: "Taylor",
+        email: "taylor@example.com",
+      } as ReturnType<typeof useAuth>["user"],
+      loading: false,
+      isAuthenticated: true,
+      errorMessage: null,
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    });
 
-    expect(
-      screen.queryByText("This app was built entirely from an iPad.")
-    ).not.toBeInTheDocument();
+    render(<App />);
+
+    expect(screen.getByText("Hello, Taylor.")).toBeInTheDocument();
+    expect(screen.getByText("taylor@example.com")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Show Development Log" })
     ).toBeInTheDocument();
