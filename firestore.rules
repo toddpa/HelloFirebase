@@ -1,0 +1,91 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+
+    function emailKey() {
+      return request.auth.token.email;
+    }
+
+    function isOwnEmailDoc(emailId) {
+      return signedIn() && emailId == emailKey();
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/adminUsers/$(emailKey()));
+    }
+
+    function isApproved() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/allowedEmails/$(emailKey()));
+    }
+
+    function hasSubscriberAccess() {
+      return isAdmin() || isApproved();
+    }
+
+    function hasValidAllowedEmailPayload(emailId) {
+      return request.resource.data.normalizedEmail == emailId
+        && request.resource.data.email is string
+        && request.resource.data.createdBy is string;
+    }
+
+    function hasValidAccessRequestCreatePayload(emailId) {
+      return request.resource.data.normalizedEmail == emailId
+        && request.resource.data.email is string
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == "pending"
+        && request.resource.data.requestedAt is timestamp
+        && request.resource.data.reviewedAt == null
+        && request.resource.data.reviewedBy == null;
+    }
+
+    function hasValidAccessRequestReviewPayload() {
+      return resource.data.status == "pending"
+        && request.resource.data.normalizedEmail == resource.data.normalizedEmail
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.requestedAt == resource.data.requestedAt
+        && request.resource.data.status in ["approved", "denied"]
+        && request.resource.data.reviewedAt is timestamp
+        && request.resource.data.reviewedBy is string;
+    }
+
+    match /allowedEmails/{emailId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && hasValidAllowedEmailPayload(emailId);
+      allow delete: if isAdmin();
+    }
+
+    match /accessRequests/{emailId} {
+      allow get: if isAdmin() || isOwnEmailDoc(emailId);
+      allow list: if isAdmin();
+      allow create: if isOwnEmailDoc(emailId)
+        && !exists(/databases/$(database)/documents/accessRequests/$(emailId))
+        && hasValidAccessRequestCreatePayload(emailId);
+      allow update: if isAdmin() && hasValidAccessRequestReviewPayload();
+      allow delete: if false;
+    }
+
+    match /adminUsers/{emailId} {
+      allow get: if isAdmin() || (isOwnEmailDoc(emailId) && resource.data.role == "admin");
+      allow list: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /subscriberContent/{documentId} {
+      allow read: if hasSubscriberAccess();
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

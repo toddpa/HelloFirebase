@@ -1,56 +1,230 @@
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  background: #f5f7fa;
-  color: #1f2933;
+:root {
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+  color: #14323f;
+  background:
+    radial-gradient(circle at top, rgba(109, 180, 143, 0.22), transparent 32%),
+    linear-gradient(180deg, #f4fbf6 0%, #edf4f7 45%, #f7f2e8 100%);
 }
 
-.container {
-  max-width: 600px;
-  margin: 80px auto;
-  padding: 24px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: #14323f;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+label {
+  font: inherit;
 }
 
 button {
-  padding: 12px 16px;
-  font-size: 16px;
+  padding: 0.85rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid #14323f;
+  background: #14323f;
+  color: #f9fbfc;
   cursor: pointer;
-  border: 1px solid #cbd2d9;
-  border-radius: 8px;
-  background: #ffffff;
+  transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
 }
 
 button:hover {
-  background: #f8fafc;
+  transform: translateY(-1px);
 }
 
-.dashboard-header {
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+  transform: none;
+}
+
+input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid #b2c6cf;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.page-shell {
+  width: min(1120px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 3rem 0 4rem;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(20, 50, 63, 0.12);
+  border-radius: 28px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 60px rgba(20, 50, 63, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.hero-panel {
+  padding: 2rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.8rem;
+  color: #5a7a69;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0.75rem;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 0.95;
+}
+
+h2 {
+  margin-bottom: 0.75rem;
+  font-size: 1.35rem;
+}
+
+.dashboard-header,
+.section-heading,
+.button-row,
+.top-nav,
+.inline-form,
+.record-card,
+.admin-layout {
   display: flex;
-  align-items: flex-start;
+  gap: 1rem;
+}
+
+.dashboard-header,
+.section-heading,
+.record-card {
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
+  align-items: flex-start;
+}
+
+.button-row {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.top-nav {
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.inline-form {
+  margin: 1rem 0 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.field-label {
+  min-width: 4rem;
+  font-weight: 600;
+}
+
+.admin-layout {
+  flex-direction: column;
+  margin-top: 1.5rem;
+}
+
+.record-list {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.record-card {
+  padding: 1rem 1.1rem;
+  border-radius: 20px;
+  background: rgba(244, 251, 246, 0.95);
+  border: 1px solid rgba(90, 122, 105, 0.18);
+}
+
+.info-card,
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.95rem;
+  border-radius: 999px;
+  background: rgba(109, 180, 143, 0.14);
+  color: #204b36;
+}
+
+.info-card {
+  flex-direction: column;
+  align-items: flex-start;
+  border-radius: 20px;
+  margin: 1.25rem 0;
+}
+
+.info-label,
+.muted-copy,
+.user-email {
+  color: #5b7280;
+}
+
+.empty-state {
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 20px;
+  background: rgba(244, 251, 246, 0.95);
+  border: 1px dashed rgba(90, 122, 105, 0.3);
+}
+
+.empty-state-title {
+  margin-bottom: 0.35rem;
+  font-weight: 600;
 }
 
 .user-greeting,
 .user-email {
-  margin: 8px 0 0;
+  margin-bottom: 0;
+}
+
+.secondary-button {
+  background: transparent;
+  color: #14323f;
+}
+
+.danger-button {
+  border-color: #a94442;
+  color: #a94442;
+}
+
+.success-copy {
+  color: #1c6b49;
 }
 
 .auth-error {
-  margin-top: 16px;
   color: #b42318;
 }
 
-@media (max-width: 640px) {
-  .container {
-    margin: 32px 16px;
+@media (max-width: 780px) {
+  .page-shell {
+    width: min(100% - 1.25rem, 1120px);
+    padding-top: 1.5rem;
   }
 
-  .dashboard-header {
+  .dashboard-header,
+  .section-heading,
+  .top-nav,
+  .inline-form,
+  .record-card {
     flex-direction: column;
   }
 }
