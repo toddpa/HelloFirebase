@@ -67,7 +67,7 @@ describe("App", () => {
   });
 
   it("renders the approved subscriber state", () => {
-    window.history.replaceState({}, "", "/subscriber");
+    window.history.replaceState({}, "", "/dashboard");
 
     vi.mocked(useAuth).mockReturnValue({
       user: {
@@ -87,10 +87,13 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(screen.getByText("Hello, Taylor.")).toBeInTheDocument();
+    expect(screen.getByText("Taylor")).toBeInTheDocument();
     expect(screen.getByText("taylor@example.com")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Subscriber landing page" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Admin" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Dashboard navigation" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Module A" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Module B" })).not.toBeInTheDocument();
   });
 
   it("renders the request access state for unknown users", () => {
@@ -173,7 +176,7 @@ describe("App", () => {
   });
 
   it("renders admin navigation for admin users", () => {
-    window.history.replaceState({}, "", "/app");
+    window.history.replaceState({}, "", "/dashboard");
 
     vi.mocked(useAuth).mockReturnValue({
       user: {
@@ -193,13 +196,71 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(screen.getByText("Admin access enabled")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Admin" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Admin home" })).toBeInTheDocument();
+    expect(screen.getByText("Administrator")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Module A" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Module B" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
+  });
+
+  it("redirects approved users away from module-b with a readable message", async () => {
+    window.history.replaceState({}, "", "/module-b");
+
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        uid: "123",
+        displayName: "Taylor",
+        email: "taylor@example.com",
+      } as ReturnType<typeof useAuth>["user"],
+      loading: false,
+      isAuthenticated: true,
+      accessState: "approved",
+      normalizedEmail: "taylor@example.com",
+      errorMessage: null,
+      refreshAccessState: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe("/dashboard");
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "You do not have access to /module-b. Showing the dashboard instead."
+    );
+    expect(screen.queryByRole("link", { name: "Module B" })).not.toBeInTheDocument();
+  });
+
+  it("allows admin users to open module-b directly", () => {
+    window.history.replaceState({}, "", "/module-b");
+
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        uid: "123",
+        displayName: "Taylor",
+        email: "taylor@example.com",
+      } as ReturnType<typeof useAuth>["user"],
+      loading: false,
+      isAuthenticated: true,
+      accessState: "admin",
+      normalizedEmail: "taylor@example.com",
+      errorMessage: null,
+      refreshAccessState: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    render(<App />);
+
+    expect(window.location.pathname).toBe("/module-b");
+    expect(screen.getByRole("heading", { name: "Module B" })).toBeInTheDocument();
   });
 
   it("replaces the URL with the allowed route for approved users", async () => {
-    window.history.replaceState({}, "", "/app/admin");
+    window.history.replaceState({}, "", "/pending");
 
     vi.mocked(useAuth).mockReturnValue({
       user: {
@@ -220,12 +281,12 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe("/subscriber");
+      expect(window.location.pathname).toBe("/dashboard");
     });
   });
 
-  it("redirects a subscriber away from admin tools", async () => {
-    window.history.replaceState({}, "", "/app/admin");
+  it("redirects legacy subscriber routes into the dashboard", async () => {
+    window.history.replaceState({}, "", "/subscriber");
 
     vi.mocked(useAuth).mockReturnValue({
       user: {
@@ -246,7 +307,7 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe("/subscriber");
+      expect(window.location.pathname).toBe("/dashboard");
     });
   });
 
@@ -272,7 +333,7 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe("/app");
+      expect(window.location.pathname).toBe("/dashboard");
     });
   });
 });

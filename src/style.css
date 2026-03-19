@@ -16,6 +16,10 @@ body {
   color: #14323f;
 }
 
+#root {
+  min-height: 100vh;
+}
+
 button,
 input {
   font: inherit;
@@ -57,6 +61,12 @@ input {
   width: min(1120px, calc(100% - 2rem));
   margin: 0 auto;
   padding: 3rem 0 4rem;
+}
+
+.dashboard-layout-shell {
+  width: min(1280px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.5rem 0 3rem;
 }
 
 .panel {
@@ -103,14 +113,19 @@ h2 {
 .top-nav,
 .inline-form,
 .record-card,
-.admin-layout {
+.admin-layout,
+.dashboard-topbar,
+.dashboard-account,
+.dashboard-frame,
+.dashboard-nav {
   display: flex;
   gap: 1rem;
 }
 
 .dashboard-header,
 .section-heading,
-.record-card {
+.record-card,
+.dashboard-topbar {
   justify-content: space-between;
   align-items: flex-start;
 }
@@ -139,6 +154,76 @@ h2 {
 .admin-layout {
   flex-direction: column;
   margin-top: 1.5rem;
+}
+
+.dashboard-topbar {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(20, 50, 63, 0.12);
+  box-shadow: 0 20px 60px rgba(20, 50, 63, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.dashboard-title,
+.dashboard-account-name {
+  margin-top: 0;
+}
+
+.dashboard-title {
+  margin-bottom: 0;
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+}
+
+.dashboard-account {
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.dashboard-account-name {
+  margin-bottom: 0.2rem;
+  font-weight: 700;
+}
+
+.dashboard-frame {
+  align-items: flex-start;
+}
+
+.dashboard-sidebar {
+  width: min(280px, 100%);
+  position: sticky;
+  top: 1.5rem;
+}
+
+.dashboard-nav {
+  flex-direction: column;
+}
+
+.dashboard-nav-link {
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(20, 50, 63, 0.12);
+  color: inherit;
+  text-decoration: none;
+  background: rgba(244, 251, 246, 0.85);
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.dashboard-nav-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(20, 50, 63, 0.28);
+}
+
+.dashboard-nav-link.active {
+  background: #14323f;
+  color: #f9fbfc;
+}
+
+.dashboard-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .record-list {
@@ -220,11 +305,24 @@ h2 {
     padding-top: 1.5rem;
   }
 
+  .dashboard-layout-shell {
+    width: min(100% - 1.25rem, 1280px);
+    padding-top: 1rem;
+  }
+
   .dashboard-header,
   .section-heading,
   .top-nav,
   .inline-form,
-  .record-card {
+  .record-card,
+  .dashboard-topbar,
+  .dashboard-frame,
+  .dashboard-account {
     flex-direction: column;
+  }
+
+  .dashboard-sidebar {
+    width: 100%;
+    position: static;
   }
 }
