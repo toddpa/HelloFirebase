@@ -198,9 +198,34 @@ describe("App", () => {
 
     expect(screen.getByText("Administrator")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Admin" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Module A" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Module B" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
+  });
+
+  it("allows admin users to open the admin tools page", async () => {
+    window.history.replaceState({}, "", "/admin");
+
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        uid: "admin-1",
+        displayName: "Taylor",
+        email: "admin@example.com",
+      } as ReturnType<typeof useAuth>["user"],
+      loading: false,
+      isAuthenticated: true,
+      accessState: "admin",
+      normalizedEmail: "admin@example.com",
+      errorMessage: null,
+      refreshAccessState: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Approved subscriber allow list" })).toBeInTheDocument();
   });
 
   it("redirects approved users away from module-b with a readable message", async () => {
@@ -308,6 +333,32 @@ describe("App", () => {
 
     await waitFor(() => {
       expect(window.location.pathname).toBe("/dashboard");
+    });
+  });
+
+  it("redirects the legacy admin tools URL to the admin page", async () => {
+    window.history.replaceState({}, "", "/app/admin");
+
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        uid: "admin-1",
+        displayName: "Taylor",
+        email: "admin@example.com",
+      } as ReturnType<typeof useAuth>["user"],
+      loading: false,
+      isAuthenticated: true,
+      accessState: "admin",
+      normalizedEmail: "admin@example.com",
+      errorMessage: null,
+      refreshAccessState: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe("/admin");
     });
   });
 

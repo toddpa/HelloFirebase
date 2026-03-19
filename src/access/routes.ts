@@ -3,6 +3,7 @@ import type { AccessState } from "./types";
 export const ROUTES = {
   home: "/",
   dashboard: "/dashboard",
+  admin: "/admin",
   moduleA: "/module-a",
   moduleB: "/module-b",
   pending: "/pending",
@@ -26,6 +27,11 @@ export const DASHBOARD_ROUTE_CONFIG: DashboardRouteConfig[] = [
     to: ROUTES.dashboard,
     label: "Dashboard",
     allowedAccessStates: [...AUTHENTICATED_DASHBOARD_ACCESS_STATES],
+  },
+  {
+    to: ROUTES.admin,
+    label: "Admin",
+    allowedAccessStates: ["admin"],
   },
   {
     to: ROUTES.moduleA,
