@@ -1,0 +1,51 @@
+{
+  "name": "HelloFirebase",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "installGradle": false,
+      "installMaven": false
+    }
+  },
+  "forwardPorts": [
+    4000,
+    5000,
+    5173,
+    8080,
+    9099
+  ],
+  "portsAttributes": {
+    "4000": {
+      "label": "Firebase Emulator UI",
+      "onAutoForward": "notify"
+    },
+    "5000": {
+      "label": "Firebase Hosting Emulator",
+      "onAutoForward": "silent"
+    },
+    "5173": {
+      "label": "Vite Dev Server",
+      "onAutoForward": "openPreview"
+    },
+    "8080": {
+      "label": "Firestore Emulator",
+      "onAutoForward": "silent"
+    },
+    "9099": {
+      "label": "Firebase Auth Emulator",
+      "onAutoForward": "silent"
+    }
+  },
+  "containerEnv": {
+    "FIREBASE_CONFIG_DIR": "${containerWorkspaceFolder}/.firebase-config"
+  },
+  "postCreateCommand": "npm install && npm install -g firebase-tools",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "typescript.tsdk": "node_modules/typescript/lib"
+      }
+    }
+  }
+}

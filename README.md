@@ -46,6 +46,26 @@ Get these values from Firebase Console:
 
 `Project settings` -> `General` -> `Your apps` -> web app config
 
+## Dev Container
+
+This repo includes a dev container at [.devcontainer/devcontainer.json](/workspaces/HelloFirebase/.devcontainer/devcontainer.json) so it can act as a repeatable starter project.
+
+The container provides:
+
+- Node.js 22
+- Java 21 for Firebase emulators that require Java
+- pre-forwarded ports for Vite and Firebase emulators
+- Firebase CLI installed during container setup
+- a matching [.nvmrc](/workspaces/HelloFirebase/.nvmrc) for non-container local setups
+
+After opening the project in the container:
+
+1. Copy `.env.example` to `.env` and fill in your Firebase web app values.
+2. Run `firebase login` if you need deploy or emulator commands tied to your account.
+3. Start development with `npm run dev`.
+
+The container does not include project secrets. Keep `.env`, `.firebaserc`, and any service-account credentials aligned with the Firebase project you want the template instance to use.
+
 ## Firebase Console Setup
 
 Before sign-in works, enable:
