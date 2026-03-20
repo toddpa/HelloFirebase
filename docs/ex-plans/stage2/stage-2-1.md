@@ -2,11 +2,15 @@
 ## Codex Execution Plan, Chunk 1 of 4
 ### Establish the Firebase app foundation, authentication wiring, and base UI shell
 
-This is a derived execution plan reconstructed from the current repository state.
+This is a derived execution plan reconstructed from the current repository state at the time it was authored.
+
+Treat the chunk as implementation scope, not proof that the repository still matches the starting snapshot exactly. If the repo has already advanced, preserve and extend the working foundation instead of rebuilding it.
 
 ## Context
 
-Start from a minimal React + Vite + TypeScript app with Firebase Hosting as the intended deployment target.
+Start from a React + Vite + TypeScript app with Firebase Hosting as the intended deployment target.
+
+The repository may already include routing, Firebase dependencies, and test infrastructure. Reuse those pieces where they are already present.
 
 This chunk lays the groundwork for Stage 2B by wiring Firebase into the frontend and creating a stable base for authentication-aware UI.
 
@@ -49,7 +53,9 @@ Create a simple signed-out experience that:
 - offers a Google sign-in button
 - displays readable auth errors when sign-in fails
 
-### 5. Add basic app-level tests and type-safe plumbing
+### 5. Extend the existing app test foundation and type-safe plumbing
+
+Use the established `vitest` + `@testing-library/react` setup for UI-facing tests.
 
 Verify the app renders a loading state and signed-out state cleanly, and keep the auth surface typed.
 
@@ -58,6 +64,7 @@ Verify the app renders a loading state and signed-out state cleanly, and keep th
 - Keep the UI intentionally simple
 - Use real Firebase SDK integration
 - Avoid introducing role logic in this chunk
+- Extend the existing test setup rather than introducing a second test framework
 
 ## Definition of Done
 
@@ -67,4 +74,5 @@ This chunk is complete when:
 - Google sign-in and sign-out are wired in the app
 - auth state is available through a React provider
 - the app has a working signed-out shell
+- existing `npm test` and `npm run typecheck` remain green
 - the project still typechecks and builds

@@ -2,7 +2,9 @@
 ## Codex Execution Plan, Chunk 4 of 4
 ### Lock down Firestore rules, add emulator coverage, and document the Stage 2B bootstrap path
 
-This is a derived execution plan reconstructed from the current repository state.
+This is a derived execution plan reconstructed from the current repository state at the time it was authored.
+
+Treat the chunk as implementation scope, not proof that the repository still matches the starting snapshot exactly. Preserve working setup and expand it where needed.
 
 ## Context
 
@@ -43,6 +45,8 @@ Create emulator-based coverage for scenarios such as:
 - denied and pending users being blocked from protected subscriber data
 - revocation behavior after allow-list removal
 
+Keep emulator-backed rules tests separate from the default UI unit-test run. The normal `npm test` path should stay focused on `jsdom` app tests, while rules coverage should run through the Firebase emulator workflow.
+
 ### 4. Document the bootstrap and test workflow
 
 Add project docs that explain:
@@ -70,6 +74,7 @@ Keep this constrained to Stage 2B coherence.
 - Do not weaken security rules to accommodate the UI
 - Use the emulator for rules verification
 - Keep the bootstrap path explicit and operator-driven
+- Preserve the separation between default unit tests and emulator-backed rules tests
 
 ## Definition of Done
 
@@ -79,4 +84,4 @@ This chunk is complete when:
 - the rules test suite passes locally
 - the README and supporting docs explain setup and bootstrap clearly
 - the app can be brought from a fresh Firebase project to a working Stage 2B baseline
-- typecheck, tests, rules tests, and build all pass
+- `npm run typecheck`, `npm test`, `npm run test:rules`, and `npm run build` all pass

@@ -2,7 +2,9 @@
 ## Codex Execution Plan, Chunk 3 of 4
 ### Implement the request-access flow and the admin review/allow-list tools
 
-This is a derived execution plan reconstructed from the current repository state.
+This is a derived execution plan reconstructed from the current repository state at the time it was authored.
+
+Treat the chunk as implementation scope, not proof that the repository still matches the starting snapshot exactly. If the repo already contains test helpers, routing, or Firebase setup, extend those patterns.
 
 ## Context
 
@@ -65,11 +67,14 @@ Cover:
 - admin request approve/deny behavior
 - unauthorized rendering for non-admin users
 
+Use the established `vitest` + `@testing-library/react` path for these app and component tests.
+
 ## Constraints
 
 - Reuse the auth and access-state foundation from prior chunks
 - Keep the admin UI compact and practical
 - Avoid building a large admin console
+- Extend existing test helpers and patterns rather than introducing parallel ones
 
 ## Definition of Done
 
@@ -79,4 +84,5 @@ This chunk is complete when:
 - admins can manage approved emails
 - admins can approve or deny pending requests
 - request and admin flows use real Firestore writes
+- existing `npm test` and `npm run typecheck` remain green
 - tests cover the main workflow branches

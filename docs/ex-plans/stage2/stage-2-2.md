@@ -2,7 +2,9 @@
 ## Codex Execution Plan, Chunk 2 of 4
 ### Introduce Firestore-backed access-state resolution and protected routing
 
-This is a derived execution plan reconstructed from the current repository state.
+This is a derived execution plan reconstructed from the current repository state at the time it was authored.
+
+Treat the chunk as implementation scope, not proof that the repository still matches the starting snapshot exactly. If supporting infrastructure already exists, build on it.
 
 ## Context
 
@@ -74,6 +76,7 @@ Keep messaging readable and explicit.
 - Firestore remains the authoritative authorization source
 - Do not rely on client-only role flags
 - Keep the access logic centralized and typed
+- Extend the existing `vitest` + Testing Library setup for UI behavior tests
 
 ## Definition of Done
 
@@ -83,4 +86,5 @@ This chunk is complete when:
 - users are routed according to that state
 - protected pages wait for resolution before rendering
 - request, pending, and denied screens exist and are reachable
+- existing `npm test` and `npm run typecheck` remain green
 - the app tests still pass
