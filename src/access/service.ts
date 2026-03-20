@@ -25,7 +25,7 @@ const ALLOWED_EMAILS_COLLECTION = "allowedEmails";
 const ACCESS_REQUESTS_COLLECTION = "accessRequests";
 const ADMIN_USERS_COLLECTION = "adminUsers";
 const SUBSCRIBER_CONTENT_COLLECTION = "subscriberContent";
-const SUBSCRIBER_ACCESS_PROBE_DOCUMENT = "__access_probe__";
+const SUBSCRIBER_ACCESS_PROBE_DOCUMENT = "access-probe";
 
 function allowedEmailRef(normalizedEmail: string) {
   return doc(db, ALLOWED_EMAILS_COLLECTION, normalizedEmail);
@@ -45,6 +45,43 @@ function subscriberAccessProbeRef() {
 
 function isPermissionDeniedError(error: unknown) {
   return typeof error === "object" && error !== null && "code" in error && error.code === "permission-denied";
+}
+
+export type AccessDiagnosticProbeResult =
+  | "allowed:found"
+  | "allowed:missing"
+  | "denied"
+  | "error";
+
+export type AccessDiagnostics = {
+  normalizedEmail: string | null;
+  adminMarker: AccessDiagnosticProbeResult;
+  accessRequest: AccessDiagnosticProbeResult;
+  subscriberProbe: AccessDiagnosticProbeResult;
+  accessRequestStatus: AccessRequestStatus | "missing" | "unreadable" | "error";
+};
+
+async function runDiagnosticProbe<T>(readOperation: () => Promise<{ exists(): boolean; data(): unknown }>) {
+  try {
+    const snapshot = await readOperation();
+
+    return {
+      outcome: snapshot.exists() ? ("allowed:found" as const) : ("allowed:missing" as const),
+      snapshot,
+    };
+  } catch (error: unknown) {
+    if (isPermissionDeniedError(error)) {
+      return {
+        outcome: "denied" as const,
+        snapshot: null,
+      };
+    }
+
+    return {
+      outcome: "error" as const,
+      snapshot: null,
+    };
+  }
 }
 
 async function canReadAdminMarker(normalizedEmail: string) {
@@ -104,6 +141,45 @@ export async function resolveUserAccess(user: User): Promise<ResolvedAccess> {
   }
 
   return { state: "pending", normalizedEmail };
+}
+
+export async function runAccessDiagnostics(user: User): Promise<AccessDiagnostics> {
+  const normalizedEmail = normalizeEmail(user.email);
+
+  if (!normalizedEmail) {
+    return {
+      normalizedEmail: null,
+      adminMarker: "error",
+      accessRequest: "error",
+      subscriberProbe: "error",
+      accessRequestStatus: "error",
+    };
+  }
+
+  const [adminMarkerResult, accessRequestResult, subscriberProbeResult] = await Promise.all([
+    runDiagnosticProbe(() => getDoc(adminUserRef(normalizedEmail))),
+    runDiagnosticProbe<AccessRequestRecord>(() => getDoc(accessRequestRef(normalizedEmail))),
+    runDiagnosticProbe(() => getDoc(subscriberAccessProbeRef())),
+  ]);
+
+  let accessRequestStatus: AccessDiagnostics["accessRequestStatus"] = "missing";
+
+  if (accessRequestResult.outcome === "allowed:found" && accessRequestResult.snapshot) {
+    const requestRecord = accessRequestResult.snapshot.data() as AccessRequestRecord;
+    accessRequestStatus = requestRecord.status;
+  } else if (accessRequestResult.outcome === "denied") {
+    accessRequestStatus = "unreadable";
+  } else if (accessRequestResult.outcome === "error") {
+    accessRequestStatus = "error";
+  }
+
+  return {
+    normalizedEmail,
+    adminMarker: adminMarkerResult.outcome,
+    accessRequest: accessRequestResult.outcome,
+    subscriberProbe: subscriberProbeResult.outcome,
+    accessRequestStatus,
+  };
 }
 
 export async function submitAccessRequest(user: User) {

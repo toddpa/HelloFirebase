@@ -21,7 +21,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -49,12 +50,18 @@ button:disabled {
   transform: none;
 }
 
-input {
+input,
+textarea {
   width: 100%;
   padding: 0.85rem 1rem;
   border: 1px solid #b2c6cf;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.92);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 7rem;
 }
 
 .page-shell {
@@ -144,6 +151,12 @@ h2 {
   margin: 1rem 0 1.5rem;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.stacked-form {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0 0;
 }
 
 .field-label {
@@ -263,6 +276,26 @@ h2 {
   color: #5b7280;
 }
 
+.access-debug-panel {
+  margin-top: 1rem;
+}
+
+.debug-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) 1fr;
+  gap: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+.debug-grid dt {
+  font-weight: 700;
+}
+
+.debug-grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .empty-state {
   margin-top: 1rem;
   padding: 1rem 1.1rem;
@@ -319,6 +352,10 @@ h2 {
   .dashboard-frame,
   .dashboard-account {
     flex-direction: column;
+  }
+
+  .debug-grid {
+    grid-template-columns: 1fr;
   }
 
   .dashboard-sidebar {

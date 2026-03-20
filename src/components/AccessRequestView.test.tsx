@@ -10,6 +10,13 @@ vi.mock("../auth/useAuth", () => ({
 
 vi.mock("../access/service", () => ({
   submitAccessRequest: vi.fn(),
+  runAccessDiagnostics: vi.fn().mockResolvedValue({
+    normalizedEmail: "newuser@example.com",
+    adminMarker: "denied",
+    accessRequest: "allowed:missing",
+    subscriberProbe: "denied",
+    accessRequestStatus: "missing",
+  }),
 }));
 
 describe("AccessRequestView", () => {
@@ -106,5 +113,30 @@ describe("AccessRequestView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel and sign out" }));
 
     expect(signOut).toHaveBeenCalled();
+  });
+
+  it("shows the debug panel when debugAuth=1 is present", () => {
+    window.history.replaceState({}, "", "/request-access?debugAuth=1");
+
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        uid: "user-123",
+        email: "newuser@example.com",
+      } as ReturnType<typeof useAuth>["user"],
+      loading: false,
+      isAuthenticated: true,
+      accessState: "unknown",
+      normalizedEmail: "newuser@example.com",
+      errorMessage: null,
+      refreshAccessState: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    render(<AccessRequestView />);
+
+    expect(screen.getByRole("heading", { name: "Authentication and access snapshot" })).toBeInTheDocument();
+    expect(screen.getByText("hellofirebase-a3363")).toBeInTheDocument();
+    expect(screen.getAllByText("newuser@example.com").length).toBeGreaterThan(0);
   });
 });

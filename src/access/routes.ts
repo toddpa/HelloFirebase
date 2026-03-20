@@ -61,6 +61,10 @@ export function getRouteConfig(pathname: string) {
   return DASHBOARD_ROUTE_CONFIG.find((route) => route.to === pathname);
 }
 
+export function getRouteLabel(pathname: string) {
+  return getRouteConfig(pathname)?.label ?? pathname;
+}
+
 export function getRouteForAccessState(accessState: AccessState): string {
   switch (accessState) {
     case "admin":

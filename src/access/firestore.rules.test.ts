@@ -34,6 +34,7 @@ async function seedAsAdmin(data: {
   allowedEmails?: Array<{ id: string; value: Record<string, unknown> }>;
   accessRequests?: Array<{ id: string; value: Record<string, unknown> }>;
   subscriberContent?: Array<{ id: string; value: Record<string, unknown> }>;
+  adminAnnouncements?: Array<{ id: string; value: Record<string, unknown> }>;
 }) {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
@@ -52,6 +53,10 @@ async function seedAsAdmin(data: {
 
     for (const record of data.subscriberContent ?? []) {
       await setDoc(doc(db, "subscriberContent", record.id), record.value);
+    }
+
+    for (const record of data.adminAnnouncements ?? []) {
+      await setDoc(doc(db, "adminAnnouncements", record.id), record.value);
     }
   });
 }
@@ -144,6 +149,55 @@ describe("Firestore access control rules", () => {
         email: "friend@example.com",
         normalizedEmail: "friend@example.com",
         createdBy: "member-uid",
+      })
+    );
+  });
+
+  it("lets admins create admin announcements and blocks approved users from doing so", async () => {
+    await seedAsAdmin({
+      adminUsers: [
+        {
+          id: "admin@example.com",
+          value: {
+            uid: "admin-uid",
+            email: "admin@example.com",
+            normalizedEmail: "admin@example.com",
+            role: "admin",
+          },
+        },
+      ],
+      allowedEmails: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "member@example.com",
+            normalizedEmail: "member@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+      ],
+    });
+
+    const adminDb = authedContext("admin@example.com", "admin-uid").firestore();
+    const memberDb = authedContext("member@example.com", "member-uid").firestore();
+
+    await assertSucceeds(
+      setDoc(doc(adminDb, "adminAnnouncements", "ops-note"), {
+        title: "Ops note",
+        details: "Restricted admin update.",
+        createdBy: "admin-uid",
+        createdByEmail: "admin@example.com",
+        createdAt: serverTimestamp(),
+      })
+    );
+
+    await assertFails(
+      setDoc(doc(memberDb, "adminAnnouncements", "member-note"), {
+        title: "Member note",
+        details: "This should fail.",
+        createdBy: "member-uid",
+        createdByEmail: "member@example.com",
+        createdAt: serverTimestamp(),
       })
     );
   });
@@ -305,5 +359,47 @@ describe("Firestore access control rules", () => {
     const requestSnapshot = await getDoc(doc(memberDb, "accessRequests", "member@example.com"));
     expect(requestSnapshot.exists()).toBe(true);
     expect(requestSnapshot.data()?.status).toBe("approved");
+  });
+
+  it("treats mixed-case authenticated emails as approved when the allow-list entry is normalized", async () => {
+    await seedAsAdmin({
+      allowedEmails: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "member@example.com",
+            normalizedEmail: "member@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+      ],
+      accessRequests: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "Member@Example.com",
+            normalizedEmail: "member@example.com",
+            uid: "member-uid",
+            status: "approved",
+            requestedAt: new Date("2026-03-17T00:00:00.000Z"),
+            reviewedAt: new Date("2026-03-17T00:10:00.000Z"),
+            reviewedBy: "admin-uid",
+          },
+        },
+      ],
+      subscriberContent: [
+        {
+          id: "welcome",
+          value: {
+            title: "Subscriber welcome",
+          },
+        },
+      ],
+    });
+
+    const mixedCaseDb = authedContext("Member@Example.com", "member-uid").firestore();
+
+    await assertSucceeds(getDoc(doc(mixedCaseDb, "subscriberContent", "welcome")));
+    await assertSucceeds(getDoc(doc(mixedCaseDb, "accessRequests", "member@example.com")));
   });
 });

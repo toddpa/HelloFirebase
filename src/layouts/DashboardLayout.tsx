@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { getDashboardNavItems } from "../access/routes";
+import { getDashboardNavItems, getRouteLabel } from "../access/routes";
 import { useAuth } from "../auth/useAuth";
 
 export default function DashboardLayout() {
@@ -16,6 +16,7 @@ export default function DashboardLayout() {
     typeof location.state.unauthorizedFrom === "string"
       ? location.state.unauthorizedFrom
       : null;
+  const unauthorizedLabel = unauthorizedFrom ? getRouteLabel(unauthorizedFrom) : null;
 
   return (
     <div className="dashboard-layout-shell">
@@ -57,7 +58,7 @@ export default function DashboardLayout() {
         <main className="dashboard-main">
           {unauthorizedFrom ? (
             <p className="auth-error panel" role="alert">
-              You do not have access to {unauthorizedFrom}. Showing the dashboard instead.
+              You do not have access to {unauthorizedLabel}. Showing the dashboard instead.
             </p>
           ) : null}
           {errorMessage ? (

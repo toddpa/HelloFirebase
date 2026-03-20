@@ -254,7 +254,7 @@ describe("App", () => {
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "You do not have access to /module-b. Showing the dashboard instead."
+      "You do not have access to Module B. Showing the dashboard instead."
     );
     expect(screen.queryByRole("link", { name: "Module B" })).not.toBeInTheDocument();
   });
@@ -281,7 +281,7 @@ describe("App", () => {
     render(<App />);
 
     expect(window.location.pathname).toBe("/module-b");
-    expect(screen.getByRole("heading", { name: "Module B" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Admin-only Firestore write" })).toBeInTheDocument();
   });
 
   it("replaces the URL with the allowed route for approved users", async () => {

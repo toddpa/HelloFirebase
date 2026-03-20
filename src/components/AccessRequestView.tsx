@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { submitAccessRequest } from "../access/service";
 import { useAuth } from "../auth/useAuth";
+import AccessDebugPanel from "./AccessDebugPanel";
 
 export default function AccessRequestView() {
   const { refreshAccessState, signOut, user } = useAuth();
@@ -63,6 +64,7 @@ export default function AccessRequestView() {
           </p>
         ) : null}
       </section>
+      <AccessDebugPanel />
     </main>
   );
 }
