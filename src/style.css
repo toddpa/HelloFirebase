@@ -129,6 +129,13 @@ h2 {
   gap: 1rem;
 }
 
+.dashboard-home-grid,
+.dashboard-summary-grid,
+.dashboard-module-grid {
+  display: grid;
+  gap: 1rem;
+}
+
 .dashboard-header,
 .section-heading,
 .record-card,
@@ -239,6 +246,30 @@ h2 {
   min-width: 0;
 }
 
+.dashboard-hero-panel {
+  overflow: hidden;
+}
+
+.dashboard-summary-grid,
+.dashboard-module-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: 1.25rem;
+}
+
+.summary-card {
+  padding: 1rem 1.1rem;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(244, 251, 246, 0.95), rgba(236, 244, 247, 0.95));
+  border: 1px solid rgba(90, 122, 105, 0.18);
+}
+
+.summary-card strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1.15rem;
+}
+
 .record-list {
   display: grid;
   gap: 0.9rem;
@@ -250,6 +281,36 @@ h2 {
   border-radius: 20px;
   background: rgba(244, 251, 246, 0.95);
   border: 1px solid rgba(90, 122, 105, 0.18);
+}
+
+.note-card,
+.note-card-header,
+.checkbox-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.note-card {
+  flex-direction: column;
+}
+
+.note-card-header {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.note-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.checkbox-row {
+  align-items: center;
+  font-weight: 600;
+}
+
+.checkbox-row input {
+  width: auto;
 }
 
 .info-card,
@@ -352,6 +413,12 @@ h2 {
   .dashboard-frame,
   .dashboard-account {
     flex-direction: column;
+  }
+
+  .note-card-header,
+  .checkbox-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .debug-grid {

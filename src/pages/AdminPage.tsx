@@ -10,6 +10,12 @@ import {
 import type { AccessRequestRecord, AllowedEmailRecord } from "../access/types";
 import { isValidEmail, normalizeEmail } from "../access/helpers";
 import { useAuth } from "../auth/useAuth";
+import AdminNoteForm from "../components/notes/AdminNoteForm";
+import NotesList from "../components/notes/NotesList";
+import {
+  listRecentDashboardNotes,
+  type DashboardNote,
+} from "../features/notes";
 
 function formatTimestamp(value?: Timestamp | null) {
   if (!value) {
@@ -23,6 +29,7 @@ export default function AdminPage() {
   const { accessState, user } = useAuth();
   const [allowedEmails, setAllowedEmails] = useState<AllowedEmailRecord[]>([]);
   const [pendingRequests, setPendingRequests] = useState<AccessRequestRecord[]>([]);
+  const [recentNotes, setRecentNotes] = useState<DashboardNote[]>([]);
   const [newEmail, setNewEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,12 +42,14 @@ export default function AdminPage() {
     setErrorMessage(null);
 
     try {
-      const [allowedEmailRecords, pendingAccessRequests] = await Promise.all([
+      const [allowedEmailRecords, pendingAccessRequests, noteRecords] = await Promise.all([
         listAllowedEmails(),
         listPendingAccessRequests(),
+        listRecentDashboardNotes(),
       ]);
       setAllowedEmails(allowedEmailRecords);
       setPendingRequests(pendingAccessRequests);
+      setRecentNotes(noteRecords);
     } catch (error: unknown) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to load the access control data."
@@ -276,6 +285,33 @@ export default function AdminPage() {
             </article>
           ))}
         </div>
+      ) : null}
+
+      <div className="section-heading admin-subsection">
+        <div>
+          <p className="eyebrow">Dashboard Notes</p>
+          <h2>Publish a shared dashboard note</h2>
+          <p>Create a note that approved users and admins can read from the shared dashboard home.</p>
+        </div>
+      </div>
+
+      <AdminNoteForm onCreated={loadAllowedEmails} />
+
+      <div className="section-heading admin-subsection">
+        <div>
+          <p className="eyebrow">Recent Notes</p>
+          <h2>Recent dashboard notes</h2>
+          <p>Admins can review the latest saved notes here, including unpublished drafts.</p>
+        </div>
+      </div>
+
+      {!loading ? (
+        <NotesList
+          notes={recentNotes}
+          ariaLabel="Recent dashboard notes"
+          emptyTitle="No dashboard notes yet."
+          emptyMessage="Create the first note above to populate the shared dashboard feed."
+        />
       ) : null}
     </section>
   );

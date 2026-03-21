@@ -19,6 +19,13 @@ vi.mock("./access/service", () => ({
   submitAccessRequest: vi.fn(),
 }));
 
+vi.mock("./features/notes", () => ({
+  listPublishedDashboardNotes: vi.fn().mockResolvedValue([]),
+  toDashboardNotesErrorMessage: vi.fn((error: unknown) =>
+    error instanceof Error ? error.message : "Unable to load dashboard notes right now."
+  ),
+}));
+
 describe("App", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
@@ -66,7 +73,7 @@ describe("App", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Authentication failed.");
   });
 
-  it("renders the approved subscriber state", () => {
+  it("renders the approved subscriber state", async () => {
     window.history.replaceState({}, "", "/dashboard");
 
     vi.mocked(useAuth).mockReturnValue({
@@ -87,9 +94,10 @@ describe("App", () => {
 
     render(<App />);
 
+    expect(await screen.findByText("No dashboard notes yet.")).toBeInTheDocument();
     expect(screen.getByText("Taylor")).toBeInTheDocument();
-    expect(screen.getByText("taylor@example.com")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getAllByText("taylor@example.com").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Welcome back, Taylor" })).toBeInTheDocument();
     expect(screen.getByRole("complementary", { name: "Dashboard navigation" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Module A" })).toBeInTheDocument();
@@ -175,7 +183,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
   });
 
-  it("renders admin navigation for admin users", () => {
+  it("renders admin navigation for admin users", async () => {
     window.history.replaceState({}, "", "/dashboard");
 
     vi.mocked(useAuth).mockReturnValue({
@@ -196,12 +204,13 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(screen.getByText("Administrator")).toBeInTheDocument();
+    expect(await screen.findByText("No dashboard notes yet.")).toBeInTheDocument();
+    expect(screen.getAllByText("Administrator").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Admin" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Module A" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Module B" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Welcome back, Taylor" })).toBeInTheDocument();
   });
 
   it("allows admin users to open the admin tools page", async () => {

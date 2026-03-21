@@ -9,6 +9,7 @@ import {
   removeSubscriberEmail,
   reviewAccessRequest,
 } from "../access/service";
+import { createDashboardNote, listRecentDashboardNotes } from "../features/notes";
 
 vi.mock("../auth/useAuth", () => ({
   useAuth: vi.fn(),
@@ -20,6 +21,11 @@ vi.mock("../access/service", () => ({
   listPendingAccessRequests: vi.fn(),
   removeSubscriberEmail: vi.fn(),
   reviewAccessRequest: vi.fn(),
+}));
+
+vi.mock("../features/notes", () => ({
+  createDashboardNote: vi.fn(),
+  listRecentDashboardNotes: vi.fn(),
 }));
 
 describe("AdminPage", () => {
@@ -66,6 +72,7 @@ describe("AdminPage", () => {
     });
     vi.mocked(listAllowedEmails).mockResolvedValue([]);
     vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
+    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
 
     render(<AdminPage />);
 
@@ -90,6 +97,7 @@ describe("AdminPage", () => {
     });
     vi.mocked(listAllowedEmails).mockResolvedValue([]);
     vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
+    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
 
     render(<AdminPage />);
 
@@ -127,6 +135,7 @@ describe("AdminPage", () => {
         },
       ]);
     vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
+    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
     vi.mocked(allowSubscriberEmail).mockResolvedValue(undefined);
 
     render(<AdminPage />);
@@ -166,6 +175,7 @@ describe("AdminPage", () => {
     });
     vi.mocked(listAllowedEmails).mockResolvedValue([]);
     vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
+    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
     vi.mocked(allowSubscriberEmail).mockRejectedValue(
       new Error("That email is already on the allow list.")
     );
@@ -209,6 +219,7 @@ describe("AdminPage", () => {
       ])
       .mockResolvedValueOnce([]);
     vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
+    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
     vi.mocked(removeSubscriberEmail).mockResolvedValue(undefined);
 
     render(<AdminPage />);
@@ -255,6 +266,7 @@ describe("AdminPage", () => {
         },
       ])
       .mockResolvedValueOnce([]);
+    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
     vi.mocked(reviewAccessRequest).mockResolvedValue(undefined);
 
     render(<AdminPage />);
@@ -306,6 +318,7 @@ describe("AdminPage", () => {
         },
       ])
       .mockResolvedValueOnce([]);
+    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
     vi.mocked(reviewAccessRequest).mockResolvedValue(undefined);
 
     render(<AdminPage />);
@@ -326,5 +339,64 @@ describe("AdminPage", () => {
     });
 
     expect(await screen.findByText("Access request denied.")).toBeInTheDocument();
+  });
+
+  it("creates a dashboard note from the admin tools surface", async () => {
+    const adminUser = {
+      uid: "admin-1",
+      email: "admin@example.com",
+    } as ReturnType<typeof useAuth>["user"];
+
+    vi.mocked(useAuth).mockReturnValue({
+      user: adminUser,
+      loading: false,
+      isAuthenticated: true,
+      accessState: "admin",
+      normalizedEmail: "admin@example.com",
+      errorMessage: null,
+      refreshAccessState: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    });
+    vi.mocked(listAllowedEmails).mockResolvedValue([]);
+    vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
+    vi.mocked(listRecentDashboardNotes)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: "note-123",
+          title: "Platform update",
+          body: "Shared note copy.",
+          createdAt: null,
+          createdByUid: "admin-1",
+          createdByEmail: "admin@example.com",
+          updatedAt: null,
+          published: true,
+        },
+      ]);
+    vi.mocked(createDashboardNote).mockResolvedValue("note-123");
+
+    render(<AdminPage />);
+
+    await screen.findByText("No approved emails yet.");
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Platform update" },
+    });
+    fireEvent.change(screen.getByLabelText("Body"), {
+      target: { value: "Shared note copy." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Publish note" }));
+
+    await waitFor(() => {
+      expect(vi.mocked(createDashboardNote)).toHaveBeenCalledWith(adminUser, {
+        title: "Platform update",
+        body: "Shared note copy.",
+        published: true,
+      });
+    });
+
+    expect(await screen.findByText("Dashboard note saved to Firestore. Document ID: note-123")).toBeInTheDocument();
+    expect(screen.getByText("Platform update")).toBeInTheDocument();
   });
 });

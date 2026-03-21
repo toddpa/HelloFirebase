@@ -18,6 +18,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -35,6 +36,7 @@ async function seedAsAdmin(data: {
   accessRequests?: Array<{ id: string; value: Record<string, unknown> }>;
   subscriberContent?: Array<{ id: string; value: Record<string, unknown> }>;
   adminAnnouncements?: Array<{ id: string; value: Record<string, unknown> }>;
+  dashboardNotes?: Array<{ id: string; value: Record<string, unknown> }>;
 }) {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
@@ -57,6 +59,10 @@ async function seedAsAdmin(data: {
 
     for (const record of data.adminAnnouncements ?? []) {
       await setDoc(doc(db, "adminAnnouncements", record.id), record.value);
+    }
+
+    for (const record of data.dashboardNotes ?? []) {
+      await setDoc(doc(db, "dashboardNotes", record.id), record.value);
     }
   });
 }
@@ -198,6 +204,90 @@ describe("Firestore access control rules", () => {
         createdBy: "member-uid",
         createdByEmail: "member@example.com",
         createdAt: serverTimestamp(),
+      })
+    );
+  });
+
+  it("lets admins create dashboard notes and lets approved users read only published ones", async () => {
+    await seedAsAdmin({
+      adminUsers: [
+        {
+          id: "admin@example.com",
+          value: {
+            uid: "admin-uid",
+            email: "admin@example.com",
+            normalizedEmail: "admin@example.com",
+            role: "admin",
+          },
+        },
+      ],
+      allowedEmails: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "member@example.com",
+            normalizedEmail: "member@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+      ],
+      dashboardNotes: [
+        {
+          id: "published-note",
+          value: {
+            title: "Published note",
+            body: "Visible to approved users.",
+            createdAt: new Date("2026-03-17T00:00:00.000Z"),
+            createdByUid: "admin-uid",
+            createdByEmail: "admin@example.com",
+            updatedAt: null,
+            published: true,
+          },
+        },
+        {
+          id: "draft-note",
+          value: {
+            title: "Draft note",
+            body: "Admins only.",
+            createdAt: new Date("2026-03-17T00:05:00.000Z"),
+            createdByUid: "admin-uid",
+            createdByEmail: "admin@example.com",
+            updatedAt: null,
+            published: false,
+          },
+        },
+      ],
+    });
+
+    const adminDb = authedContext("admin@example.com", "admin-uid").firestore();
+    const memberDb = authedContext("member@example.com", "member-uid").firestore();
+
+    await assertSucceeds(
+      setDoc(doc(adminDb, "dashboardNotes", "new-note"), {
+        title: "New note",
+        body: "Admin-created dashboard note.",
+        createdAt: serverTimestamp(),
+        createdByUid: "admin-uid",
+        createdByEmail: "admin@example.com",
+        updatedAt: null,
+        published: true,
+      })
+    );
+
+    await assertSucceeds(getDoc(doc(memberDb, "dashboardNotes", "published-note")));
+    await assertFails(getDoc(doc(memberDb, "dashboardNotes", "draft-note")));
+    await assertSucceeds(
+      getDocs(query(collection(memberDb, "dashboardNotes"), where("published", "==", true)))
+    );
+    await assertFails(
+      setDoc(doc(memberDb, "dashboardNotes", "member-note"), {
+        title: "Member note",
+        body: "This should fail.",
+        createdAt: serverTimestamp(),
+        createdByUid: "member-uid",
+        createdByEmail: "member@example.com",
+        updatedAt: null,
+        published: true,
       })
     );
   });
