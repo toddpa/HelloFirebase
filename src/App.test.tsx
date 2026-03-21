@@ -1,7 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import type { Timestamp } from "firebase/firestore";
 import { vi } from "vitest";
 import App from "./App";
 import { useAuth } from "./auth/useAuth";
+import { listPublishedDashboardNotes } from "./features/notes";
 
 vi.mock("./auth/useAuth", () => ({
   useAuth: vi.fn(),
@@ -21,14 +23,26 @@ vi.mock("./access/service", () => ({
 
 vi.mock("./features/notes", () => ({
   listPublishedDashboardNotes: vi.fn().mockResolvedValue([]),
+  listRecentDashboardNotes: vi.fn().mockResolvedValue([]),
+  createDashboardNote: vi.fn(),
   toDashboardNotesErrorMessage: vi.fn((error: unknown) =>
     error instanceof Error ? error.message : "Unable to load dashboard notes right now."
   ),
 }));
 
+function createTimestamp(isoString: string) {
+  const date = new Date(isoString);
+
+  return {
+    toDate: () => date,
+    toMillis: () => date.getTime(),
+  } as Timestamp;
+}
+
 describe("App", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
+    vi.mocked(listPublishedDashboardNotes).mockResolvedValue([]);
   });
 
   it("renders the loading state", () => {
@@ -75,6 +89,18 @@ describe("App", () => {
 
   it("renders the approved subscriber state", async () => {
     window.history.replaceState({}, "", "/dashboard");
+    vi.mocked(listPublishedDashboardNotes).mockResolvedValue([
+      {
+        id: "dashboard-note-1",
+        title: "Shared dashboard update",
+        body: "Visible to approved users.",
+        createdAt: createTimestamp("2026-03-20T10:00:00.000Z"),
+        createdByUid: "admin-1",
+        createdByEmail: "admin@example.com",
+        updatedAt: null,
+        published: true,
+      },
+    ]);
 
     vi.mocked(useAuth).mockReturnValue({
       user: {
@@ -102,6 +128,8 @@ describe("App", () => {
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Module A" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Module B" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Shared dashboard update")).toBeInTheDocument();
+    expect(screen.queryByText("Posted by admin@example.com")).not.toBeInTheDocument();
   });
 
   it("renders the request access state for unknown users", () => {

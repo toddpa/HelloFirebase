@@ -32,6 +32,10 @@ function normalizeFormValue(value: string) {
   return value.trim();
 }
 
+function normalizeUserValue(value: string | null | undefined) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function readString(value: unknown) {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
@@ -92,6 +96,23 @@ export function toDashboardNotesErrorMessage(error: unknown) {
   return "Unable to load dashboard notes right now.";
 }
 
+export function toDashboardNoteWriteErrorMessage(error: unknown) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "permission-denied"
+  ) {
+    return "You do not have permission to save dashboard notes.";
+  }
+
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return "Unable to save the dashboard note right now.";
+}
+
 export async function getDashboardNotes(
   options: GetDashboardNotesOptions = {}
 ): Promise<DashboardNote[]> {
@@ -116,6 +137,8 @@ export async function createDashboardNote(user: User, formState: DashboardNoteFo
   const title = normalizeFormValue(formState.title);
   const body = normalizeFormValue(formState.body);
   const published = formState.published ?? true;
+  const userUid = normalizeUserValue(user.uid);
+  const userEmail = normalizeUserValue(user.email);
 
   if (!title) {
     throw new Error("Enter a note title before saving.");
@@ -125,22 +148,30 @@ export async function createDashboardNote(user: User, formState: DashboardNoteFo
     throw new Error("Enter the note details before saving.");
   }
 
-  if (!user.email) {
+  if (!userEmail) {
     throw new Error("A signed-in admin email is required before saving.");
   }
 
-  const documentReference = await addDoc(collection(db, DASHBOARD_NOTES_COLLECTION), {
-    title,
-    body,
-    createdAt: serverTimestamp(),
-    createdByUid: user.uid,
-    createdByEmail: user.email,
-    updatedAt: null,
-    published,
-  } satisfies Omit<DashboardNote, "id" | "createdAt" | "updatedAt"> & {
-    createdAt: ReturnType<typeof serverTimestamp>;
-    updatedAt: null;
-  });
+  if (!userUid) {
+    throw new Error("A signed-in admin uid is required before saving.");
+  }
 
-  return documentReference.id;
+  try {
+    const documentReference = await addDoc(collection(db, DASHBOARD_NOTES_COLLECTION), {
+      title,
+      body,
+      createdAt: serverTimestamp(),
+      createdByUid: userUid,
+      createdByEmail: userEmail,
+      updatedAt: null,
+      published,
+    } satisfies Omit<DashboardNote, "id" | "createdAt" | "updatedAt"> & {
+      createdAt: ReturnType<typeof serverTimestamp>;
+      updatedAt: null;
+    });
+
+    return documentReference.id;
+  } catch (error: unknown) {
+    throw new Error(toDashboardNoteWriteErrorMessage(error));
+  }
 }

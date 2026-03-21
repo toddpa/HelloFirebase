@@ -311,6 +311,8 @@ export default function AdminPage() {
           ariaLabel="Recent dashboard notes"
           emptyTitle="No dashboard notes yet."
           emptyMessage="Create the first note above to populate the shared dashboard feed."
+          showAuthorEmail
+          showPublicationStatus
         />
       ) : null}
     </section>

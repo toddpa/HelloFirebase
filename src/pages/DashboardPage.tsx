@@ -1,6 +1,13 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ROUTES, getDashboardNavItems } from "../access/routes";
 import { useAuth } from "../auth/useAuth";
+import NotesList from "../components/notes/NotesList";
+import {
+  listPublishedDashboardNotes,
+  toDashboardNotesErrorMessage,
+  type DashboardNote,
+} from "../features/notes";
 
 const MODULE_SUMMARY_COPY: Record<string, string> = {
   [ROUTES.dashboard]: "Shared home surface for status and the modules available to your role.",
@@ -23,12 +30,38 @@ const QUICK_LINK_DESCRIPTIONS: Record<string, string> = {
 
 export default function DashboardPage() {
   const { accessState, normalizedEmail, user } = useAuth();
+  const [notes, setNotes] = useState<DashboardNote[]>([]);
+  const [notesLoading, setNotesLoading] = useState(true);
+  const [notesErrorMessage, setNotesErrorMessage] = useState<string | null>(null);
 
   const navItems = getDashboardNavItems(accessState);
   const roleLabel = accessState === "admin" ? "Administrator" : "Approved user";
   const quickLinks = navItems.filter((item) => item.to !== ROUTES.dashboard);
   const welcomeName = user?.displayName ?? user?.email ?? "there";
   const isAdmin = accessState === "admin";
+
+  async function loadNotes() {
+    setNotesLoading(true);
+    setNotesErrorMessage(null);
+
+    try {
+      const nextNotes = await listPublishedDashboardNotes();
+      setNotes(nextNotes);
+    } catch (error: unknown) {
+      setNotes([]);
+      setNotesErrorMessage(toDashboardNotesErrorMessage(error));
+    } finally {
+      setNotesLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (accessState !== "approved" && accessState !== "admin") {
+      return;
+    }
+
+    void loadNotes();
+  }, [accessState]);
 
   return (
     <div className="dashboard-home-grid">
@@ -115,6 +148,45 @@ export default function DashboardPage() {
             </p>
           </article>
         </div>
+      </section>
+
+      <section className="panel">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Dashboard Notes</p>
+            <h2>Latest shared notes</h2>
+            <p>
+              Published dashboard notes appear here for every approved dashboard user, while admin
+              creation stays on the admin page.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void loadNotes()}
+            disabled={notesLoading}
+          >
+            Refresh
+          </button>
+        </div>
+
+        {notesErrorMessage ? (
+          <p className="auth-error" role="alert">
+            {notesErrorMessage}
+          </p>
+        ) : null}
+
+        {notesLoading ? <p>Loading dashboard notes...</p> : null}
+
+        {!notesLoading && !notesErrorMessage ? (
+          <NotesList
+            notes={notes}
+            ariaLabel="Dashboard notes"
+            emptyTitle="No notes available yet."
+            emptyMessage="Published dashboard notes will appear here once an admin adds one."
+            showAuthorEmail={isAdmin}
+          />
+        ) : null}
       </section>
     </div>
   );

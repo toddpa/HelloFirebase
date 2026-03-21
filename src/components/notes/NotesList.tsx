@@ -6,6 +6,8 @@ type NotesListProps = {
   emptyTitle: string;
   emptyMessage: string;
   ariaLabel: string;
+  showAuthorEmail?: boolean;
+  showPublicationStatus?: boolean;
 };
 
 export default function NotesList({
@@ -13,6 +15,8 @@ export default function NotesList({
   emptyTitle,
   emptyMessage,
   ariaLabel,
+  showAuthorEmail = false,
+  showPublicationStatus = false,
 }: NotesListProps) {
   if (notes.length === 0) {
     return (
@@ -26,7 +30,12 @@ export default function NotesList({
   return (
     <div className="record-list" aria-label={ariaLabel}>
       {notes.map((note) => (
-        <NoteCard key={note.id} note={note} />
+        <NoteCard
+          key={note.id}
+          note={note}
+          showAuthorEmail={showAuthorEmail}
+          showPublicationStatus={showPublicationStatus}
+        />
       ))}
     </div>
   );

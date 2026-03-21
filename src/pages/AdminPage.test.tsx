@@ -398,5 +398,48 @@ describe("AdminPage", () => {
 
     expect(await screen.findByText("Dashboard note saved to Firestore. Document ID: note-123")).toBeInTheDocument();
     expect(screen.getByText("Platform update")).toBeInTheDocument();
+    expect(screen.getByLabelText("Title")).toHaveValue("");
+    expect(screen.getByLabelText("Body")).toHaveValue("");
+  });
+
+  it("shows a readable permission error when dashboard note creation fails", async () => {
+    const adminUser = {
+      uid: "admin-1",
+      email: "admin@example.com",
+    } as ReturnType<typeof useAuth>["user"];
+
+    vi.mocked(useAuth).mockReturnValue({
+      user: adminUser,
+      loading: false,
+      isAuthenticated: true,
+      accessState: "admin",
+      normalizedEmail: "admin@example.com",
+      errorMessage: null,
+      refreshAccessState: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    });
+    vi.mocked(listAllowedEmails).mockResolvedValue([]);
+    vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
+    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
+    vi.mocked(createDashboardNote).mockRejectedValue(
+      new Error("You do not have permission to save dashboard notes.")
+    );
+
+    render(<AdminPage />);
+
+    await screen.findByText("No approved emails yet.");
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Platform update" },
+    });
+    fireEvent.change(screen.getByLabelText("Body"), {
+      target: { value: "Shared note copy." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Publish note" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "You do not have permission to save dashboard notes."
+    );
   });
 });
