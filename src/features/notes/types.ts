@@ -18,3 +18,7 @@ export type DashboardNoteFormState = {
   body: string;
   published: boolean;
 };
+
+export type GetDashboardNotesOptions = {
+  includeUnpublished?: boolean;
+};

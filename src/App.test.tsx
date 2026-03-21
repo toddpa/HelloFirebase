@@ -94,7 +94,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByText("No dashboard notes yet.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "What you can access" })).toBeInTheDocument();
     expect(screen.getByText("Taylor")).toBeInTheDocument();
     expect(screen.getAllByText("taylor@example.com").length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Welcome back, Taylor" })).toBeInTheDocument();
@@ -204,7 +204,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByText("No dashboard notes yet.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "What you can access" })).toBeInTheDocument();
     expect(screen.getAllByText("Administrator").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Admin" })).toBeInTheDocument();

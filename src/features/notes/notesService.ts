@@ -15,6 +15,7 @@ import {
   DASHBOARD_NOTES_COLLECTION,
   type DashboardNote,
   type DashboardNoteFormState,
+  type GetDashboardNotesOptions,
 } from "./types";
 
 type DashboardNoteDocument = {
@@ -91,25 +92,30 @@ export function toDashboardNotesErrorMessage(error: unknown) {
   return "Unable to load dashboard notes right now.";
 }
 
-export async function listPublishedDashboardNotes(): Promise<DashboardNote[]> {
-  const notesQuery = query(
-    collection(db, DASHBOARD_NOTES_COLLECTION),
-    where("published", "==", true)
-  );
+export async function getDashboardNotes(
+  options: GetDashboardNotesOptions = {}
+): Promise<DashboardNote[]> {
+  const notesCollection = collection(db, DASHBOARD_NOTES_COLLECTION);
+  const notesQuery = options.includeUnpublished
+    ? notesCollection
+    : query(notesCollection, where("published", "==", true));
   const snapshot = await getDocs(notesQuery);
 
   return snapshot.docs.map(toDashboardNote).sort(compareDashboardNotes);
 }
 
-export async function listRecentDashboardNotes(): Promise<DashboardNote[]> {
-  const snapshot = await getDocs(collection(db, DASHBOARD_NOTES_COLLECTION));
+export async function listPublishedDashboardNotes(): Promise<DashboardNote[]> {
+  return getDashboardNotes();
+}
 
-  return snapshot.docs.map(toDashboardNote).sort(compareDashboardNotes);
+export async function listRecentDashboardNotes(): Promise<DashboardNote[]> {
+  return getDashboardNotes({ includeUnpublished: true });
 }
 
 export async function createDashboardNote(user: User, formState: DashboardNoteFormState) {
   const title = normalizeFormValue(formState.title);
   const body = normalizeFormValue(formState.body);
+  const published = formState.published ?? true;
 
   if (!title) {
     throw new Error("Enter a note title before saving.");
@@ -130,7 +136,7 @@ export async function createDashboardNote(user: User, formState: DashboardNoteFo
     createdByUid: user.uid,
     createdByEmail: user.email,
     updatedAt: null,
-    published: formState.published,
+    published,
   } satisfies Omit<DashboardNote, "id" | "createdAt" | "updatedAt"> & {
     createdAt: ReturnType<typeof serverTimestamp>;
     updatedAt: null;

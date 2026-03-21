@@ -241,6 +241,15 @@ h2 {
   color: #f9fbfc;
 }
 
+.dashboard-inline-link {
+  display: inline-flex;
+  margin-top: 0.9rem;
+  color: #14323f;
+  font-weight: 600;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
 .dashboard-main {
   flex: 1;
   min-width: 0;

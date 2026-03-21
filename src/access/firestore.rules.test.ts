@@ -274,6 +274,7 @@ describe("Firestore access control rules", () => {
       })
     );
 
+    await assertSucceeds(getDoc(doc(adminDb, "dashboardNotes", "draft-note")));
     await assertSucceeds(getDoc(doc(memberDb, "dashboardNotes", "published-note")));
     await assertFails(getDoc(doc(memberDb, "dashboardNotes", "draft-note")));
     await assertSucceeds(
@@ -290,6 +291,63 @@ describe("Firestore access control rules", () => {
         published: true,
       })
     );
+  });
+
+  it("blocks dashboard note updates and deletes for admins and approved users", async () => {
+    await seedAsAdmin({
+      adminUsers: [
+        {
+          id: "admin@example.com",
+          value: {
+            uid: "admin-uid",
+            email: "admin@example.com",
+            normalizedEmail: "admin@example.com",
+            role: "admin",
+          },
+        },
+      ],
+      allowedEmails: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "member@example.com",
+            normalizedEmail: "member@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+      ],
+      dashboardNotes: [
+        {
+          id: "published-note",
+          value: {
+            title: "Published note",
+            body: "Visible to approved users.",
+            createdAt: new Date("2026-03-17T00:00:00.000Z"),
+            createdByUid: "admin-uid",
+            createdByEmail: "admin@example.com",
+            updatedAt: null,
+            published: true,
+          },
+        },
+      ],
+    });
+
+    const adminDb = authedContext("admin@example.com", "admin-uid").firestore();
+    const memberDb = authedContext("member@example.com", "member-uid").firestore();
+
+    await assertFails(
+      updateDoc(doc(adminDb, "dashboardNotes", "published-note"), {
+        body: "Updated body",
+        updatedAt: serverTimestamp(),
+      })
+    );
+    await assertFails(deleteDoc(doc(adminDb, "dashboardNotes", "published-note")));
+    await assertFails(
+      updateDoc(doc(memberDb, "dashboardNotes", "published-note"), {
+        body: "Member edit attempt",
+      })
+    );
+    await assertFails(deleteDoc(doc(memberDb, "dashboardNotes", "published-note")));
   });
 
   it("blocks unknown, pending, and denied users from reading protected subscriber data", async () => {

@@ -1,60 +1,43 @@
-import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { ROUTES, getDashboardNavItems } from "../access/routes";
 import { useAuth } from "../auth/useAuth";
-import NotesList from "../components/notes/NotesList";
-import {
-  listPublishedDashboardNotes,
-  toDashboardNotesErrorMessage,
-  type DashboardNote,
-} from "../features/notes";
 
 const MODULE_SUMMARY_COPY: Record<string, string> = {
-  [ROUTES.dashboard]: "Shared home surface for status, notes, and the modules available to your role.",
+  [ROUTES.dashboard]: "Shared home surface for status and the modules available to your role.",
   [ROUTES.admin]: "Access management and note publishing tools reserved for administrators.",
   [ROUTES.moduleA]: "Read shared subscriber content pulled from Firestore.",
   [ROUTES.moduleB]: "Run the admin-only Firestore write flow for restricted announcements.",
 };
 
+const QUICK_LINK_HEADINGS: Record<string, string> = {
+  [ROUTES.admin]: "Admin tools",
+  [ROUTES.moduleA]: "Module A",
+  [ROUTES.moduleB]: "Module B",
+};
+
+const QUICK_LINK_DESCRIPTIONS: Record<string, string> = {
+  [ROUTES.admin]: "Review access, manage approvals, and handle administrator workflows.",
+  [ROUTES.moduleA]: "Open the shared module available to every approved dashboard user.",
+  [ROUTES.moduleB]: "Jump into the admin-only write flow for restricted operational updates.",
+};
+
 export default function DashboardPage() {
   const { accessState, normalizedEmail, user } = useAuth();
-  const [notes, setNotes] = useState<DashboardNote[]>([]);
-  const [loadingNotes, setLoadingNotes] = useState(true);
-  const [notesError, setNotesError] = useState<string | null>(null);
 
   const navItems = getDashboardNavItems(accessState);
   const roleLabel = accessState === "admin" ? "Administrator" : "Approved user";
-
-  async function loadNotes() {
-    setLoadingNotes(true);
-    setNotesError(null);
-
-    try {
-      const nextNotes = await listPublishedDashboardNotes();
-      setNotes(nextNotes);
-    } catch (error: unknown) {
-      setNotes([]);
-      setNotesError(toDashboardNotesErrorMessage(error));
-    } finally {
-      setLoadingNotes(false);
-    }
-  }
-
-  useEffect(() => {
-    if (accessState !== "approved" && accessState !== "admin") {
-      return;
-    }
-
-    void loadNotes();
-  }, [accessState]);
+  const quickLinks = navItems.filter((item) => item.to !== ROUTES.dashboard);
+  const welcomeName = user?.displayName ?? user?.email ?? "there";
+  const isAdmin = accessState === "admin";
 
   return (
     <div className="dashboard-home-grid">
       <section className="panel dashboard-hero-panel">
         <p className="eyebrow">Dashboard Home</p>
-        <h2>Welcome back{user?.displayName ? `, ${user.displayName}` : ""}</h2>
+        <h2>Welcome back, {welcomeName}</h2>
         <p>
-          This shared workspace keeps the current access model intact while giving approved users
-          and admins one place to orient themselves, read published notes, and jump into the right modules.
+          This landing page gives approved users and administrators one place to confirm their
+          access, review their signed-in identity, and jump into the modules available to them.
         </p>
 
         <div className="dashboard-summary-grid" aria-label="Dashboard summary">
@@ -79,20 +62,27 @@ export default function DashboardPage() {
       <section className="panel">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Workspace Map</p>
-            <h2>Available areas</h2>
-            <p>Use these shortcuts to move between the modules already wired into this dashboard shell.</p>
+            <p className="eyebrow">Workspace Overview</p>
+            <h2>What you can access</h2>
+            <p>
+              {isAdmin
+                ? "Your administrator access unlocks every dashboard area, including the admin-only tools."
+                : "Your approved access unlocks the shared dashboard experience and Module A."}
+            </p>
           </div>
         </div>
 
         <div className="dashboard-module-grid">
-          {navItems.map((item) => (
+          {quickLinks.map((item) => (
             <article key={item.to} className="summary-card">
-              <p className="eyebrow">{item.label}</p>
-              <strong>{item.to}</strong>
+              <p className="eyebrow">{QUICK_LINK_HEADINGS[item.to] ?? item.label}</p>
+              <strong>{item.label}</strong>
               <p className="muted-copy">
-                {MODULE_SUMMARY_COPY[item.to] ?? "Dashboard route available to your role."}
+                {QUICK_LINK_DESCRIPTIONS[item.to] ?? MODULE_SUMMARY_COPY[item.to] ?? "Dashboard route available to your role."}
               </p>
+              <Link className="dashboard-inline-link" to={item.to}>
+                Open {item.label}
+              </Link>
             </article>
           ))}
         </div>
@@ -101,31 +91,30 @@ export default function DashboardPage() {
       <section className="panel">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Dashboard Notes</p>
-            <h2>Published updates</h2>
-            <p>Approved users and admins can read the latest published notes here, newest first.</p>
+            <p className="eyebrow">Next Steps</p>
+            <h2>Start from the right place</h2>
+            <p>
+              Use the sidebar or the quick links above to move through the dashboard. Access rules stay
+              enforced on every route, so you will only see and open the areas available to your role.
+            </p>
           </div>
-          <button type="button" className="secondary-button" onClick={() => void loadNotes()} disabled={loadingNotes}>
-            Refresh
-          </button>
         </div>
-
-        {notesError ? (
-          <p className="auth-error" role="alert">
-            {notesError}
-          </p>
-        ) : null}
-
-        {loadingNotes ? <p>Loading dashboard notes...</p> : null}
-
-        {!loadingNotes && !notesError ? (
-          <NotesList
-            notes={notes}
-            ariaLabel="Published dashboard notes"
-            emptyTitle="No dashboard notes yet."
-            emptyMessage="Published updates from administrators will appear here."
-          />
-        ) : null}
+        <div className="dashboard-summary-grid" aria-label="Dashboard next steps">
+          <article className="summary-card">
+            <p className="eyebrow">Dashboard</p>
+            <strong>Use this as your landing surface</strong>
+            <p className="muted-copy">
+              Return here any time you need a quick view of your account, access level, and available modules.
+            </p>
+          </article>
+          <article className="summary-card">
+            <p className="eyebrow">Protection</p>
+            <strong>Route guards remain active</strong>
+            <p className="muted-copy">
+              If you try to open something outside your permissions, the app redirects you to the correct home route.
+            </p>
+          </article>
+        </div>
       </section>
     </div>
   );
