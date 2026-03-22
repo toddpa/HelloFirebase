@@ -4,7 +4,7 @@ import NoteCard from "./NoteCard";
 type NotesListProps = {
   notes: DashboardNote[];
   emptyTitle: string;
-  emptyMessage: string;
+  emptyMessage?: string;
   ariaLabel: string;
   showAuthorEmail?: boolean;
   showPublicationStatus?: boolean;
@@ -22,7 +22,7 @@ export default function NotesList({
     return (
       <div className="empty-state">
         <p className="empty-state-title">{emptyTitle}</p>
-        <p className="muted-copy">{emptyMessage}</p>
+        {emptyMessage ? <p className="muted-copy">{emptyMessage}</p> : null}
       </div>
     );
   }

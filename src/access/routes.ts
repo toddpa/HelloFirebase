@@ -21,6 +21,7 @@ export type DashboardRouteConfig = {
   to: string;
   label: string;
   allowedAccessStates: AccessState[];
+  showInNavigation?: boolean;
 };
 
 export const DASHBOARD_ROUTE_CONFIG: DashboardRouteConfig[] = [
@@ -41,13 +42,14 @@ export const DASHBOARD_ROUTE_CONFIG: DashboardRouteConfig[] = [
   },
   {
     to: ROUTES.moduleA,
-    label: "Module A",
+    label: "My Notes",
     allowedAccessStates: [...AUTHENTICATED_DASHBOARD_ACCESS_STATES],
   },
   {
     to: ROUTES.moduleB,
     label: "Module B",
     allowedAccessStates: ["admin"],
+    showInNavigation: false,
   },
 ];
 
@@ -60,7 +62,9 @@ export function getDashboardNavItems(accessState: AccessState | null) {
     return [];
   }
 
-  return DASHBOARD_ROUTE_CONFIG.filter((item) => canAccessRoute(accessState, item.allowedAccessStates));
+  return DASHBOARD_ROUTE_CONFIG.filter(
+    (item) => item.showInNavigation !== false && canAccessRoute(accessState, item.allowedAccessStates)
+  );
 }
 
 export function getRouteConfig(pathname: string) {

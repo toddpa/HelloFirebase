@@ -3,7 +3,6 @@ import type { Timestamp } from "firebase/firestore";
 import { vi } from "vitest";
 import App from "./App";
 import { useAuth } from "./auth/useAuth";
-import { subscribeToAdminAnnouncements } from "./features/adminAnnouncements";
 import { listPublishedDashboardNotes } from "./features/notes";
 
 vi.mock("./auth/useAuth", () => ({
@@ -31,13 +30,6 @@ vi.mock("./features/notes", () => ({
   ),
 }));
 
-vi.mock("./features/adminAnnouncements", () => ({
-  subscribeToAdminAnnouncements: vi.fn(),
-  toAdminAnnouncementsErrorMessage: vi.fn((error: unknown) =>
-    error instanceof Error ? error.message : "Unable to load admin announcements right now."
-  ),
-}));
-
 function createTimestamp(isoString: string) {
   const date = new Date(isoString);
 
@@ -51,11 +43,6 @@ describe("App", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
     vi.mocked(listPublishedDashboardNotes).mockResolvedValue([]);
-    vi.mocked(subscribeToAdminAnnouncements).mockImplementation(({ onAnnouncements }) => {
-      onAnnouncements([]);
-
-      return vi.fn();
-    });
   });
 
   it("renders the loading state", () => {
@@ -114,19 +101,6 @@ describe("App", () => {
         published: true,
       },
     ]);
-    vi.mocked(subscribeToAdminAnnouncements).mockImplementation(({ onAnnouncements }) => {
-      onAnnouncements([
-        {
-          id: "announcement-1",
-          title: "Planned maintenance",
-          description: "Shared maintenance window.",
-          createdAt: createTimestamp("2026-03-21T10:00:00.000Z"),
-        },
-      ]);
-
-      return vi.fn();
-    });
-
     vi.mocked(useAuth).mockReturnValue({
       user: {
         uid: "123",
@@ -145,15 +119,14 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "What you can access" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Signed-in summary" })).toBeInTheDocument();
     expect(screen.getByText("Taylor")).toBeInTheDocument();
     expect(screen.getAllByText("taylor@example.com").length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: "Welcome back, Taylor" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Signed-in summary" })).toBeInTheDocument();
     expect(screen.getByRole("complementary", { name: "Dashboard navigation" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Module A" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "My Notes" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Module B" })).not.toBeInTheDocument();
-    expect(await screen.findByText("Planned maintenance")).toBeInTheDocument();
     expect(await screen.findByText("Shared dashboard update")).toBeInTheDocument();
     expect(screen.queryByText("Posted by admin@example.com")).not.toBeInTheDocument();
   });
@@ -261,14 +234,14 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "What you can access" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Signed-in summary" })).toBeInTheDocument();
     expect(screen.getAllByText("Administrator").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Access Control" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Dashboard Notes" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Module A" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Module B" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Welcome back, Taylor" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "My Notes" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Module B" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Signed-in summary" })).toBeInTheDocument();
   });
 
   it("allows admin users to open the admin tools page", async () => {
@@ -371,8 +344,8 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(window.location.pathname).toBe("/module-b");
-    expect(screen.getByRole("heading", { name: "Admin-only Firestore write" })).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/admin-notes");
+    expect(screen.getByRole("heading", { name: "Dashboard notes" })).toBeInTheDocument();
   });
 
   it("replaces the URL with the allowed route for approved users", async () => {

@@ -26,11 +26,12 @@ export default function DashboardLayout() {
           <h1 className="dashboard-title">Operations workspace</h1>
         </div>
         <div className="dashboard-account">
-          <div>
+          <div className="dashboard-account-card">
+            <p className="eyebrow">Signed In</p>
             <p className="dashboard-account-name">{displayName}</p>
             <p className="user-email">{user?.email ?? "No email available"}</p>
+            <span className="status-pill">{roleLabel}</span>
           </div>
-          <span className="status-pill">{roleLabel}</span>
           <button id="sign-out" type="button" className="secondary-button" onClick={() => void signOut()}>
             Sign out
           </button>
@@ -50,9 +51,6 @@ export default function DashboardLayout() {
               </NavLink>
             ))}
           </nav>
-          <p className="muted-copy">
-            Available modules are shown based on your current dashboard access.
-          </p>
         </aside>
 
         <main className="dashboard-main">

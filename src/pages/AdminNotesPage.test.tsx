@@ -106,13 +106,14 @@ describe("AdminNotesPage", () => {
     fireEvent.change(screen.getByLabelText("Body"), {
       target: { value: "Shared note copy." },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Publish note" }));
+    fireEvent.click(screen.getByLabelText("Publish immediately"));
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
 
     await waitFor(() => {
       expect(vi.mocked(createDashboardNote)).toHaveBeenCalledWith(adminUser, {
         title: "Platform update",
         body: "Shared note copy.",
-        published: true,
+        published: false,
       });
     });
 

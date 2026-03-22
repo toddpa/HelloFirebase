@@ -87,9 +87,25 @@ export default function AdminNoteForm({ onCreated }: AdminNoteFormProps) {
         />
       </div>
 
+      <label className="checkbox-row" htmlFor="dashboard-note-published">
+        <input
+          id="dashboard-note-published"
+          type="checkbox"
+          checked={formState.published}
+          onChange={(event) =>
+            setFormState((currentState) => ({
+              ...currentState,
+              published: event.target.checked,
+            }))
+          }
+          disabled={isSubmitting}
+        />
+        Publish immediately
+      </label>
+
       <div className="button-row">
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Publish note"}
+          {isSubmitting ? "Saving..." : formState.published ? "Publish note" : "Save draft"}
         </button>
       </div>
 

@@ -37,6 +37,7 @@ async function seedAsAdmin(data: {
   subscriberContent?: Array<{ id: string; value: Record<string, unknown> }>;
   adminAnnouncements?: Array<{ id: string; value: Record<string, unknown> }>;
   dashboardNotes?: Array<{ id: string; value: Record<string, unknown> }>;
+  userNotes?: Array<{ ownerId: string; id: string; value: Record<string, unknown> }>;
 }) {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
@@ -63,6 +64,10 @@ async function seedAsAdmin(data: {
 
     for (const record of data.dashboardNotes ?? []) {
       await setDoc(doc(db, "dashboardNotes", record.id), record.value);
+    }
+
+    for (const record of data.userNotes ?? []) {
+      await setDoc(doc(db, "userNotes", record.ownerId, "notes", record.id), record.value);
     }
   });
 }
@@ -290,6 +295,85 @@ describe("Firestore access control rules", () => {
         createdByEmail: "member@example.com",
         updatedAt: null,
         published: true,
+      })
+    );
+  });
+
+  it("lets approved users create private notes and only read their own notes", async () => {
+    await seedAsAdmin({
+      adminUsers: [
+        {
+          id: "admin@example.com",
+          value: {
+            uid: "admin-uid",
+            email: "admin@example.com",
+            normalizedEmail: "admin@example.com",
+            role: "admin",
+          },
+        },
+      ],
+      allowedEmails: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "member@example.com",
+            normalizedEmail: "member@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+        {
+          id: "other@example.com",
+          value: {
+            email: "other@example.com",
+            normalizedEmail: "other@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+      ],
+      userNotes: [
+        {
+          ownerId: "member-uid",
+          id: "member-note",
+          value: {
+            title: "Member note",
+            body: "Visible only to the owner.",
+            createdAt: new Date("2026-03-17T01:00:00.000Z"),
+            updatedAt: null,
+            createdByUid: "member-uid",
+            createdByEmail: "member@example.com",
+          },
+        },
+      ],
+    });
+
+    const memberDb = authedContext("member@example.com", "member-uid").firestore();
+    const otherDb = authedContext("other@example.com", "other-uid").firestore();
+
+    await assertSucceeds(
+      setDoc(doc(memberDb, "userNotes", "member-uid", "notes", "new-member-note"), {
+        title: "New private note",
+        body: "Only I should see this.",
+        createdAt: serverTimestamp(),
+        updatedAt: null,
+        createdByUid: "member-uid",
+        createdByEmail: "member@example.com",
+      })
+    );
+
+    await assertSucceeds(getDoc(doc(memberDb, "userNotes", "member-uid", "notes", "member-note")));
+    await assertSucceeds(
+      getDocs(collection(memberDb, "userNotes", "member-uid", "notes"))
+    );
+
+    await assertFails(getDoc(doc(otherDb, "userNotes", "member-uid", "notes", "member-note")));
+    await assertFails(
+      setDoc(doc(otherDb, "userNotes", "member-uid", "notes", "forged-note"), {
+        title: "Forged note",
+        body: "This should fail.",
+        createdAt: serverTimestamp(),
+        updatedAt: null,
+        createdByUid: "member-uid",
+        createdByEmail: "member@example.com",
       })
     );
   });

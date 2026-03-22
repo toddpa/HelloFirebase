@@ -14,6 +14,8 @@ body {
   margin: 0;
   min-height: 100vh;
   color: #14323f;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 #root {
@@ -65,13 +67,13 @@ textarea {
 }
 
 .page-shell {
-  width: min(1120px, calc(100% - 2rem));
+  width: min(1320px, calc(100% - 3rem));
   margin: 0 auto;
   padding: 3rem 0 4rem;
 }
 
 .dashboard-layout-shell {
-  width: min(1280px, calc(100% - 2rem));
+  width: min(1480px, calc(100% - 3rem));
   margin: 0 auto;
   padding: 1.5rem 0 3rem;
 }
@@ -105,13 +107,13 @@ p {
 
 h1 {
   margin-bottom: 0.75rem;
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 0.95;
+  font-size: clamp(1.8rem, 2.5vw, 2.5rem);
+  line-height: 1.02;
 }
 
 h2 {
   margin-bottom: 0.75rem;
-  font-size: 1.35rem;
+  font-size: 1.2rem;
 }
 
 .dashboard-header,
@@ -177,6 +179,10 @@ h2 {
 }
 
 .dashboard-topbar {
+  display: flex;
+  gap: 1.25rem;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 1.5rem;
   padding: 1.25rem 1.5rem;
   border-radius: 28px;
@@ -193,18 +199,35 @@ h2 {
 
 .dashboard-title {
   margin-bottom: 0;
-  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-size: clamp(1.45rem, 1.8vw, 1.95rem);
 }
 
 .dashboard-account {
-  align-items: center;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  flex-wrap: nowrap;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .dashboard-account-name {
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.15rem;
   font-weight: 700;
+  font-size: 1rem;
+}
+
+.dashboard-account-card {
+  display: grid;
+  gap: 0.35rem;
+  min-width: min(100%, 18rem);
+  max-width: 22rem;
+  padding: 0.95rem 1rem;
+  border-radius: 20px;
+  background: rgba(244, 251, 246, 0.9);
+  border: 1px solid rgba(90, 122, 105, 0.18);
+}
+
+.dashboard-account-card .eyebrow {
+  margin-bottom: 0;
 }
 
 .dashboard-frame {
@@ -212,7 +235,7 @@ h2 {
 }
 
 .dashboard-sidebar {
-  width: min(280px, 100%);
+  width: min(240px, 100%);
   position: sticky;
   top: 1.5rem;
 }
@@ -273,10 +296,36 @@ h2 {
   border: 1px solid rgba(90, 122, 105, 0.18);
 }
 
+.dashboard-meta {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.dashboard-meta p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.dashboard-meta strong {
+  display: inline;
+  margin-bottom: 0;
+  font-size: 0.95rem;
+}
+
 .summary-card strong {
   display: block;
   margin-bottom: 0.5rem;
-  font-size: 1.15rem;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.summary-value {
+  overflow-wrap: anywhere;
+}
+
+.summary-value-compact {
+  font-size: 0.94rem;
+  line-height: 1.45;
 }
 
 .record-list {
@@ -389,6 +438,12 @@ h2 {
   color: #5b7280;
 }
 
+.user-email {
+  font-size: 0.92rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .access-debug-panel {
   margin-top: 1rem;
 }
@@ -446,6 +501,10 @@ h2 {
 }
 
 @media (max-width: 780px) {
+  body {
+    font-size: 16px;
+  }
+
   .page-shell {
     width: min(100% - 1.25rem, 1120px);
     padding-top: 1.5rem;
@@ -461,10 +520,23 @@ h2 {
   .top-nav,
   .inline-form,
   .record-card,
-  .dashboard-topbar,
   .dashboard-frame,
   .dashboard-account {
     flex-direction: column;
+  }
+
+  .dashboard-topbar {
+    flex-direction: column;
+  }
+
+  .dashboard-account {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-account-card {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .note-card-header,

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { useAuth } from "../auth/useAuth";
-import { listModuleAItems } from "../moduleA/service";
+import { createModuleAItem, listModuleAItems } from "../moduleA/service";
 import ModuleAPage from "./ModuleAPage";
 
 vi.mock("../auth/useAuth", () => ({
@@ -9,9 +9,10 @@ vi.mock("../auth/useAuth", () => ({
 }));
 
 vi.mock("../moduleA/service", () => ({
+  createModuleAItem: vi.fn(),
   listModuleAItems: vi.fn(),
   toModuleAErrorMessage: vi.fn((error: unknown) =>
-    error instanceof Error ? error.message : "Unable to load Module A items right now."
+    error instanceof Error ? error.message : "Unable to load your notes right now."
   ),
 }));
 
@@ -35,67 +36,82 @@ describe("ModuleAPage", () => {
     });
   });
 
-  it("renders the loaded list of Module A items", async () => {
+  it("renders the loaded list of private notes", async () => {
     vi.mocked(listModuleAItems).mockResolvedValue([
       {
         id: "welcome",
         title: "Welcome",
-        summary: "Shared notes for subscribers.",
-        status: "published",
+        body: "Private note body.",
+        createdAt: null,
         updatedAt: null,
       },
     ]);
 
     render(<ModuleAPage />);
 
-    expect(screen.getByText("Loading shared updates...")).toBeInTheDocument();
+    expect(screen.getByText("Loading your notes...")).toBeInTheDocument();
     expect(await screen.findByText("Welcome")).toBeInTheDocument();
-    expect(screen.getByText("Shared notes for subscribers.")).toBeInTheDocument();
-    expect(screen.getByText("published")).toBeInTheDocument();
+    expect(screen.getByText("Private note body.")).toBeInTheDocument();
   });
 
-  it("renders the empty state when the collection has no documents", async () => {
+  it("renders the empty state when the user has no notes", async () => {
     vi.mocked(listModuleAItems).mockResolvedValue([]);
 
     render(<ModuleAPage />);
 
-    expect(await screen.findByText("No shared updates yet.")).toBeInTheDocument();
-    expect(screen.getByText("Add documents to the subscriber content collection to populate Module A.")).toBeInTheDocument();
+    expect(await screen.findByText("No notes yet.")).toBeInTheDocument();
   });
 
   it("renders a readable error message when the read fails", async () => {
-    vi.mocked(listModuleAItems).mockRejectedValue(new Error("You do not have permission to read Module A right now."));
+    vi.mocked(listModuleAItems).mockRejectedValue(new Error("You do not have permission to read your notes right now."));
 
     render(<ModuleAPage />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "You do not have permission to read Module A right now."
+      "You do not have permission to read your notes right now."
     );
   });
 
-  it("refreshes the list when the refresh button is clicked", async () => {
+  it("saves a note and reloads the list", async () => {
     vi.mocked(listModuleAItems)
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         {
           id: "launch-note",
           title: "Launch note",
-          summary: null,
-          status: null,
+          body: "Remember the launch checklist.",
+          createdAt: null,
           updatedAt: null,
         },
       ]);
+    vi.mocked(createModuleAItem).mockResolvedValue("launch-note");
 
     render(<ModuleAPage />);
 
-    expect(await screen.findByText("No shared updates yet.")).toBeInTheDocument();
+    expect(await screen.findByText("No notes yet.")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Launch note" },
+    });
+    fireEvent.change(screen.getByLabelText("Body"), {
+      target: { value: "Remember the launch checklist." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save note" }));
 
     await waitFor(() => {
-      expect(vi.mocked(listModuleAItems)).toHaveBeenCalledTimes(2);
+      expect(vi.mocked(createModuleAItem)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          uid: "member-1",
+          email: "member@example.com",
+        }),
+        {
+          title: "Launch note",
+          body: "Remember the launch checklist.",
+        }
+      );
     });
 
+    expect(await screen.findByText("Note saved. Document ID: launch-note")).toBeInTheDocument();
     expect(await screen.findByText("Launch note")).toBeInTheDocument();
   });
 });
