@@ -4,6 +4,7 @@ export const ROUTES = {
   home: "/",
   dashboard: "/dashboard",
   admin: "/admin",
+  adminNotes: "/admin-notes",
   moduleA: "/module-a",
   moduleB: "/module-b",
   pending: "/pending",
@@ -30,7 +31,12 @@ export const DASHBOARD_ROUTE_CONFIG: DashboardRouteConfig[] = [
   },
   {
     to: ROUTES.admin,
-    label: "Admin",
+    label: "Access Control",
+    allowedAccessStates: ["admin"],
+  },
+  {
+    to: ROUTES.adminNotes,
+    label: "Dashboard Notes",
     allowedAccessStates: ["admin"],
   },
   {

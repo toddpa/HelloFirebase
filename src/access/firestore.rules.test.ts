@@ -159,7 +159,7 @@ describe("Firestore access control rules", () => {
     );
   });
 
-  it("lets admins create admin announcements and blocks approved users from doing so", async () => {
+  it("lets admins create admin announcements, lets approved users read them, and blocks approved users from writing", async () => {
     await seedAsAdmin({
       adminUsers: [
         {
@@ -190,19 +190,20 @@ describe("Firestore access control rules", () => {
     await assertSucceeds(
       setDoc(doc(adminDb, "adminAnnouncements", "ops-note"), {
         title: "Ops note",
-        details: "Restricted admin update.",
+        description: "Restricted admin update.",
         createdBy: "admin-uid",
-        createdByEmail: "admin@example.com",
         createdAt: serverTimestamp(),
       })
     );
 
+    await assertSucceeds(getDoc(doc(memberDb, "adminAnnouncements", "ops-note")));
+    await assertSucceeds(getDocs(collection(memberDb, "adminAnnouncements")));
+
     await assertFails(
       setDoc(doc(memberDb, "adminAnnouncements", "member-note"), {
         title: "Member note",
-        details: "This should fail.",
+        description: "This should fail.",
         createdBy: "member-uid",
-        createdByEmail: "member@example.com",
         createdAt: serverTimestamp(),
       })
     );

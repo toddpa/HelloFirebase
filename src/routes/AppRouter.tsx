@@ -7,6 +7,7 @@ import {
 } from "../access/routes";
 import DashboardLayout from "../layouts/DashboardLayout";
 import AdminPage from "../pages/AdminPage";
+import AdminNotesPage from "../pages/AdminNotesPage";
 import DashboardPage from "../pages/DashboardPage";
 import DeniedPage from "../pages/DeniedPage";
 import ModuleAPage from "../pages/ModuleAPage";
@@ -31,6 +32,7 @@ function LegacyRouteRedirect() {
 export default function AppRouter() {
   const dashboardRoute = getRouteConfig(ROUTES.dashboard);
   const adminRoute = getRouteConfig(ROUTES.admin);
+  const adminNotesRoute = getRouteConfig(ROUTES.adminNotes);
   const moduleARoute = getRouteConfig(ROUTES.moduleA);
   const moduleBRoute = getRouteConfig(ROUTES.moduleB);
 
@@ -67,6 +69,16 @@ export default function AppRouter() {
               }
             >
               <Route path={ROUTES.admin} element={<AdminPage />} />
+            </Route>
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedAccessStates={adminNotesRoute?.allowedAccessStates ?? []}
+                  unauthorizedRedirectTo={ROUTES.dashboard}
+                />
+              }
+            >
+              <Route path={ROUTES.adminNotes} element={<AdminNotesPage />} />
             </Route>
             <Route
               element={<ProtectedRoute allowedAccessStates={moduleARoute?.allowedAccessStates ?? []} />}

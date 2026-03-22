@@ -9,8 +9,7 @@ export type ModuleBFormState = {
 
 export type ModuleBRecord = {
   title: string;
-  details: string;
+  description: string;
   createdBy: string;
-  createdByEmail: string;
   createdAt: Timestamp | null;
 };

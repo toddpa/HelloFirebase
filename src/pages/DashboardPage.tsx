@@ -4,6 +4,11 @@ import { ROUTES, getDashboardNavItems } from "../access/routes";
 import { useAuth } from "../auth/useAuth";
 import NotesList from "../components/notes/NotesList";
 import {
+  subscribeToAdminAnnouncements,
+  toAdminAnnouncementsErrorMessage,
+  type AdminAnnouncement,
+} from "../features/adminAnnouncements";
+import {
   listPublishedDashboardNotes,
   toDashboardNotesErrorMessage,
   type DashboardNote,
@@ -11,25 +16,24 @@ import {
 
 const MODULE_SUMMARY_COPY: Record<string, string> = {
   [ROUTES.dashboard]: "Shared home surface for status and the modules available to your role.",
-  [ROUTES.admin]: "Access management and note publishing tools reserved for administrators.",
+  [ROUTES.admin]: "Approve access requests and manage the subscriber allow list.",
+  [ROUTES.adminNotes]: "Create and review the shared dashboard notes reserved for administrators.",
   [ROUTES.moduleA]: "Read shared subscriber content pulled from Firestore.",
   [ROUTES.moduleB]: "Run the admin-only Firestore write flow for restricted announcements.",
 };
 
-const QUICK_LINK_HEADINGS: Record<string, string> = {
-  [ROUTES.admin]: "Admin tools",
-  [ROUTES.moduleA]: "Module A",
-  [ROUTES.moduleB]: "Module B",
-};
-
 const QUICK_LINK_DESCRIPTIONS: Record<string, string> = {
-  [ROUTES.admin]: "Review access, manage approvals, and handle administrator workflows.",
+  [ROUTES.admin]: "Review access requests and maintain the approved subscriber list.",
+  [ROUTES.adminNotes]: "Publish shared notes and review recent note history in one admin-only place.",
   [ROUTES.moduleA]: "Open the shared module available to every approved dashboard user.",
   [ROUTES.moduleB]: "Jump into the admin-only write flow for restricted operational updates.",
 };
 
 export default function DashboardPage() {
   const { accessState, normalizedEmail, user } = useAuth();
+  const [announcements, setAnnouncements] = useState<AdminAnnouncement[]>([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  const [announcementsErrorMessage, setAnnouncementsErrorMessage] = useState<string | null>(null);
   const [notes, setNotes] = useState<DashboardNote[]>([]);
   const [notesLoading, setNotesLoading] = useState(true);
   const [notesErrorMessage, setNotesErrorMessage] = useState<string | null>(null);
@@ -57,6 +61,35 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (accessState !== "approved" && accessState !== "admin") {
+      setAnnouncements([]);
+      setAnnouncementsLoading(false);
+      setAnnouncementsErrorMessage(null);
+      return;
+    }
+
+    setAnnouncementsLoading(true);
+    setAnnouncementsErrorMessage(null);
+
+    const unsubscribe = subscribeToAdminAnnouncements({
+      onAnnouncements: (nextAnnouncements) => {
+        setAnnouncements(nextAnnouncements);
+        setAnnouncementsLoading(false);
+      },
+      onError: (error) => {
+        setAnnouncements([]);
+        setAnnouncementsLoading(false);
+        setAnnouncementsErrorMessage(toAdminAnnouncementsErrorMessage(error));
+      },
+    });
+
+    return unsubscribe;
+  }, [accessState]);
+
+  useEffect(() => {
+    if (accessState !== "approved" && accessState !== "admin") {
+      setNotes([]);
+      setNotesLoading(false);
+      setNotesErrorMessage(null);
       return;
     }
 
@@ -108,7 +141,6 @@ export default function DashboardPage() {
         <div className="dashboard-module-grid">
           {quickLinks.map((item) => (
             <article key={item.to} className="summary-card">
-              <p className="eyebrow">{QUICK_LINK_HEADINGS[item.to] ?? item.label}</p>
               <strong>{item.label}</strong>
               <p className="muted-copy">
                 {QUICK_LINK_DESCRIPTIONS[item.to] ?? MODULE_SUMMARY_COPY[item.to] ?? "Dashboard route available to your role."}
@@ -148,6 +180,49 @@ export default function DashboardPage() {
             </p>
           </article>
         </div>
+      </section>
+
+      <section className="panel">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Announcements</p>
+            <h2>Admin announcements</h2>
+            <p>Shared operational announcements appear here for approved users and administrators.</p>
+          </div>
+        </div>
+
+        {announcementsErrorMessage ? (
+          <p className="auth-error" role="alert">
+            {announcementsErrorMessage}
+          </p>
+        ) : null}
+
+        {announcementsLoading ? <p>Loading announcements...</p> : null}
+
+        {!announcementsLoading && !announcementsErrorMessage && announcements.length === 0 ? (
+          <div className="empty-state">
+            <p className="empty-state-title">No announcements yet.</p>
+            <p className="muted-copy">Announcements created by admins will appear here automatically.</p>
+          </div>
+        ) : null}
+
+        {!announcementsLoading && announcements.length > 0 ? (
+          <div className="record-list" aria-label="Admin announcements">
+            {announcements.map((announcement) => (
+              <article key={announcement.id} className="record-card">
+                <div>
+                  <strong>{announcement.title}</strong>
+                  <p>{announcement.description}</p>
+                  <p className="muted-copy">
+                    {announcement.createdAt
+                      ? `Posted ${announcement.createdAt.toDate().toLocaleString()}`
+                      : "Posted time not available"}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="panel">

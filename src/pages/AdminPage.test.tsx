@@ -9,7 +9,6 @@ import {
   removeSubscriberEmail,
   reviewAccessRequest,
 } from "../access/service";
-import { createDashboardNote, listRecentDashboardNotes } from "../features/notes";
 
 vi.mock("../auth/useAuth", () => ({
   useAuth: vi.fn(),
@@ -21,11 +20,6 @@ vi.mock("../access/service", () => ({
   listPendingAccessRequests: vi.fn(),
   removeSubscriberEmail: vi.fn(),
   reviewAccessRequest: vi.fn(),
-}));
-
-vi.mock("../features/notes", () => ({
-  createDashboardNote: vi.fn(),
-  listRecentDashboardNotes: vi.fn(),
 }));
 
 describe("AdminPage", () => {
@@ -55,7 +49,7 @@ describe("AdminPage", () => {
     expect(vi.mocked(listAllowedEmails)).not.toHaveBeenCalled();
   });
 
-  it("renders the empty state when no allowed emails exist", async () => {
+  it("renders only access-control headings and empty states", async () => {
     vi.mocked(useAuth).mockReturnValue({
       user: {
         uid: "admin-1",
@@ -72,12 +66,53 @@ describe("AdminPage", () => {
     });
     vi.mocked(listAllowedEmails).mockResolvedValue([]);
     vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
-    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
 
     render(<AdminPage />);
 
+    expect(screen.getByRole("heading", { name: "Access management" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Approved subscriber emails" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pending access requests" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Dashboard notes" })).not.toBeInTheDocument();
     expect(await screen.findByText("No approved emails yet.")).toBeInTheDocument();
     expect(screen.getByText("No pending access requests.")).toBeInTheDocument();
+  });
+
+  it("renders approved users in a table with role and created-at columns", async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        uid: "admin-1",
+        email: "admin@example.com",
+      } as ReturnType<typeof useAuth>["user"],
+      loading: false,
+      isAuthenticated: true,
+      accessState: "admin",
+      normalizedEmail: "admin@example.com",
+      errorMessage: null,
+      refreshAccessState: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    });
+    vi.mocked(listAllowedEmails).mockResolvedValue([
+      {
+        email: "member@example.com",
+        normalizedEmail: "member@example.com",
+        createdBy: "admin-1",
+        createdAt: null,
+      },
+    ]);
+    vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
+
+    render(<AdminPage />);
+
+    const table = await screen.findByRole("table", { name: "Approved subscriber emails" });
+
+    expect(table).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Email" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Role" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Created At" })).toBeInTheDocument();
+    expect(screen.getByText("member@example.com")).toBeInTheDocument();
+    expect(screen.getByText("Approved")).toBeInTheDocument();
+    expect(screen.getByText("--")).toBeInTheDocument();
   });
 
   it("validates email input before submitting", async () => {
@@ -97,7 +132,6 @@ describe("AdminPage", () => {
     });
     vi.mocked(listAllowedEmails).mockResolvedValue([]);
     vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
-    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
 
     render(<AdminPage />);
 
@@ -135,7 +169,6 @@ describe("AdminPage", () => {
         },
       ]);
     vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
-    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
     vi.mocked(allowSubscriberEmail).mockResolvedValue(undefined);
 
     render(<AdminPage />);
@@ -175,7 +208,6 @@ describe("AdminPage", () => {
     });
     vi.mocked(listAllowedEmails).mockResolvedValue([]);
     vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
-    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
     vi.mocked(allowSubscriberEmail).mockRejectedValue(
       new Error("That email is already on the allow list.")
     );
@@ -219,14 +251,15 @@ describe("AdminPage", () => {
       ])
       .mockResolvedValueOnce([]);
     vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
-    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
     vi.mocked(removeSubscriberEmail).mockResolvedValue(undefined);
 
     render(<AdminPage />);
 
     expect(await screen.findByText("member@example.com")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    fireEvent.change(screen.getByLabelText("Actions for member@example.com"), {
+      target: { value: "remove" },
+    });
 
     await waitFor(() => {
       expect(window.confirm).toHaveBeenCalledWith(
@@ -266,14 +299,19 @@ describe("AdminPage", () => {
         },
       ])
       .mockResolvedValueOnce([]);
-    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
     vi.mocked(reviewAccessRequest).mockResolvedValue(undefined);
 
     render(<AdminPage />);
 
     expect(await screen.findByText("pending@example.com")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Pending access requests" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Status" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Requested At" })).toBeInTheDocument();
+    expect(screen.getByText("pending")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    fireEvent.change(screen.getByLabelText("Actions for pending@example.com"), {
+      target: { value: "approve" },
+    });
 
     await waitFor(() => {
       expect(vi.mocked(reviewAccessRequest)).toHaveBeenCalledWith(
@@ -318,14 +356,15 @@ describe("AdminPage", () => {
         },
       ])
       .mockResolvedValueOnce([]);
-    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
     vi.mocked(reviewAccessRequest).mockResolvedValue(undefined);
 
     render(<AdminPage />);
 
     expect(await screen.findByText("blocked@example.com")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
+    fireEvent.change(screen.getByLabelText("Actions for blocked@example.com"), {
+      target: { value: "denied" },
+    });
 
     await waitFor(() => {
       expect(vi.mocked(reviewAccessRequest)).toHaveBeenCalledWith(
@@ -339,107 +378,5 @@ describe("AdminPage", () => {
     });
 
     expect(await screen.findByText("Access request denied.")).toBeInTheDocument();
-  });
-
-  it("creates a dashboard note from the admin tools surface", async () => {
-    const adminUser = {
-      uid: "admin-1",
-      email: "admin@example.com",
-    } as ReturnType<typeof useAuth>["user"];
-
-    vi.mocked(useAuth).mockReturnValue({
-      user: adminUser,
-      loading: false,
-      isAuthenticated: true,
-      accessState: "admin",
-      normalizedEmail: "admin@example.com",
-      errorMessage: null,
-      refreshAccessState: vi.fn(),
-      signIn: vi.fn(),
-      signOut: vi.fn(),
-    });
-    vi.mocked(listAllowedEmails).mockResolvedValue([]);
-    vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
-    vi.mocked(listRecentDashboardNotes)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        {
-          id: "note-123",
-          title: "Platform update",
-          body: "Shared note copy.",
-          createdAt: null,
-          createdByUid: "admin-1",
-          createdByEmail: "admin@example.com",
-          updatedAt: null,
-          published: true,
-        },
-      ]);
-    vi.mocked(createDashboardNote).mockResolvedValue("note-123");
-
-    render(<AdminPage />);
-
-    await screen.findByText("No approved emails yet.");
-
-    fireEvent.change(screen.getByLabelText("Title"), {
-      target: { value: "Platform update" },
-    });
-    fireEvent.change(screen.getByLabelText("Body"), {
-      target: { value: "Shared note copy." },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Publish note" }));
-
-    await waitFor(() => {
-      expect(vi.mocked(createDashboardNote)).toHaveBeenCalledWith(adminUser, {
-        title: "Platform update",
-        body: "Shared note copy.",
-        published: true,
-      });
-    });
-
-    expect(await screen.findByText("Dashboard note saved to Firestore. Document ID: note-123")).toBeInTheDocument();
-    expect(screen.getByText("Platform update")).toBeInTheDocument();
-    expect(screen.getByLabelText("Title")).toHaveValue("");
-    expect(screen.getByLabelText("Body")).toHaveValue("");
-  });
-
-  it("shows a readable permission error when dashboard note creation fails", async () => {
-    const adminUser = {
-      uid: "admin-1",
-      email: "admin@example.com",
-    } as ReturnType<typeof useAuth>["user"];
-
-    vi.mocked(useAuth).mockReturnValue({
-      user: adminUser,
-      loading: false,
-      isAuthenticated: true,
-      accessState: "admin",
-      normalizedEmail: "admin@example.com",
-      errorMessage: null,
-      refreshAccessState: vi.fn(),
-      signIn: vi.fn(),
-      signOut: vi.fn(),
-    });
-    vi.mocked(listAllowedEmails).mockResolvedValue([]);
-    vi.mocked(listPendingAccessRequests).mockResolvedValue([]);
-    vi.mocked(listRecentDashboardNotes).mockResolvedValue([]);
-    vi.mocked(createDashboardNote).mockRejectedValue(
-      new Error("You do not have permission to save dashboard notes.")
-    );
-
-    render(<AdminPage />);
-
-    await screen.findByText("No approved emails yet.");
-
-    fireEvent.change(screen.getByLabelText("Title"), {
-      target: { value: "Platform update" },
-    });
-    fireEvent.change(screen.getByLabelText("Body"), {
-      target: { value: "Shared note copy." },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Publish note" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "You do not have permission to save dashboard notes."
-    );
   });
 });

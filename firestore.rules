@@ -87,10 +87,9 @@ service cloud.firestore {
     function hasValidAdminAnnouncementCreatePayload() {
       return request.resource.data.title is string
         && request.resource.data.title.size() > 0
-        && request.resource.data.details is string
-        && request.resource.data.details.size() > 0
+        && request.resource.data.description is string
+        && request.resource.data.description.size() > 0
         && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.createdByEmail == request.auth.token.email
         && request.resource.data.createdAt is timestamp;
     }
 
@@ -107,7 +106,7 @@ service cloud.firestore {
     }
 
     match /adminAnnouncements/{documentId} {
-      allow get, list: if isAdmin();
+      allow get, list: if hasSubscriberAccess();
       allow create: if isAdmin() && hasValidAdminAnnouncementCreatePayload();
       allow update, delete: if false;
     }

@@ -10,16 +10,10 @@ import {
 import type { AccessRequestRecord, AllowedEmailRecord } from "../access/types";
 import { isValidEmail, normalizeEmail } from "../access/helpers";
 import { useAuth } from "../auth/useAuth";
-import AdminNoteForm from "../components/notes/AdminNoteForm";
-import NotesList from "../components/notes/NotesList";
-import {
-  listRecentDashboardNotes,
-  type DashboardNote,
-} from "../features/notes";
 
 function formatTimestamp(value?: Timestamp | null) {
   if (!value) {
-    return "Not available";
+    return "--";
   }
 
   return value.toDate().toLocaleString();
@@ -29,7 +23,6 @@ export default function AdminPage() {
   const { accessState, user } = useAuth();
   const [allowedEmails, setAllowedEmails] = useState<AllowedEmailRecord[]>([]);
   const [pendingRequests, setPendingRequests] = useState<AccessRequestRecord[]>([]);
-  const [recentNotes, setRecentNotes] = useState<DashboardNote[]>([]);
   const [newEmail, setNewEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,14 +35,12 @@ export default function AdminPage() {
     setErrorMessage(null);
 
     try {
-      const [allowedEmailRecords, pendingAccessRequests, noteRecords] = await Promise.all([
+      const [allowedEmailRecords, pendingAccessRequests] = await Promise.all([
         listAllowedEmails(),
         listPendingAccessRequests(),
-        listRecentDashboardNotes(),
       ]);
       setAllowedEmails(allowedEmailRecords);
       setPendingRequests(pendingAccessRequests);
-      setRecentNotes(noteRecords);
     } catch (error: unknown) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to load the access control data."
@@ -160,13 +151,37 @@ export default function AdminPage() {
     }
   }
 
+  async function handleAllowedEmailAction(
+    normalizedEmail: string,
+    nextAction: string
+  ) {
+    if (!nextAction) {
+      return;
+    }
+
+    if (nextAction === "remove") {
+      await handleRemoveEmail(normalizedEmail);
+    }
+  }
+
+  async function handlePendingRequestAction(
+    requestRecord: AccessRequestRecord,
+    nextAction: string
+  ) {
+    if (!nextAction) {
+      return;
+    }
+
+    if (nextAction === "approve" || nextAction === "denied") {
+      await handleReviewRequest(requestRecord, nextAction === "approve" ? "approved" : "denied");
+    }
+  }
+
   return (
     <section className="panel">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Admin</p>
-          <h2>Approved subscriber allow list</h2>
-          <p>Manage which email addresses can enter the subscriber application.</p>
+          <h2>Access management</h2>
         </div>
         <button
           type="button"
@@ -176,6 +191,12 @@ export default function AdminPage() {
         >
           Refresh
         </button>
+      </div>
+
+      <div className="section-heading admin-subsection">
+        <div>
+          <h3>Approved subscriber emails</h3>
+        </div>
       </div>
 
       <div className="inline-form">
@@ -218,32 +239,49 @@ export default function AdminPage() {
       ) : null}
 
       {!loading && allowedEmails.length > 0 ? (
-        <div className="record-list" aria-label="Approved subscriber emails">
-          {allowedEmails.map((record) => (
-            <article key={record.normalizedEmail} className="record-card">
-              <div>
-                <strong>{record.email || record.normalizedEmail}</strong>
-                <p className="muted-copy">Normalized: {record.normalizedEmail}</p>
-                <p className="muted-copy">Added {formatTimestamp(record.createdAt)}</p>
-              </div>
-              <button
-                type="button"
-                className="secondary-button danger-button"
-                onClick={() => void handleRemoveEmail(record.normalizedEmail)}
-                disabled={isSubmitting}
-              >
-                Remove
-              </button>
-            </article>
-          ))}
+        <div className="admin-table-shell">
+          <table className="admin-table" aria-label="Approved subscriber emails">
+            <thead>
+              <tr>
+                <th scope="col">Email</th>
+                <th scope="col">Role</th>
+                <th scope="col">Created At</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allowedEmails.map((record) => (
+                <tr key={record.normalizedEmail}>
+                  <td>{record.email || record.normalizedEmail}</td>
+                  <td>Approved</td>
+                  <td>{formatTimestamp(record.createdAt)}</td>
+                  <td>
+                    <select
+                      className="admin-action-select"
+                      aria-label={`Actions for ${record.email || record.normalizedEmail}`}
+                      defaultValue=""
+                      onChange={(event) => {
+                        void handleAllowedEmailAction(record.normalizedEmail, event.target.value);
+                        event.target.value = "";
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      <option value="" disabled>
+                        Actions
+                      </option>
+                      <option value="remove">Remove</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : null}
 
       <div className="section-heading admin-subsection">
         <div>
-          <p className="eyebrow">Review Queue</p>
-          <h2>Pending access requests</h2>
-          <p>Approve or deny requests from signed-in users who are not yet on the allow list.</p>
+          <h3>Pending access requests</h3>
         </div>
       </div>
 
@@ -257,63 +295,45 @@ export default function AdminPage() {
       ) : null}
 
       {!loading && pendingRequests.length > 0 ? (
-        <div className="record-list" aria-label="Pending access requests">
-          {pendingRequests.map((requestRecord) => (
-            <article key={requestRecord.normalizedEmail} className="record-card">
-              <div>
-                <strong>{requestRecord.email}</strong>
-                <p className="muted-copy">Normalized: {requestRecord.normalizedEmail}</p>
-                <p className="muted-copy">Requested {formatTimestamp(requestRecord.requestedAt)}</p>
-              </div>
-              <div className="button-row">
-                <button
-                  type="button"
-                  onClick={() => void handleReviewRequest(requestRecord, "approved")}
-                  disabled={isSubmitting}
-                >
-                  Approve
-                </button>
-                <button
-                  type="button"
-                  className="secondary-button danger-button"
-                  onClick={() => void handleReviewRequest(requestRecord, "denied")}
-                  disabled={isSubmitting}
-                >
-                  Deny
-                </button>
-              </div>
-            </article>
-          ))}
+        <div className="admin-table-shell">
+          <table className="admin-table" aria-label="Pending access requests">
+            <thead>
+              <tr>
+                <th scope="col">Email</th>
+                <th scope="col">Status</th>
+                <th scope="col">Requested At</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingRequests.map((requestRecord) => (
+                <tr key={requestRecord.normalizedEmail}>
+                  <td>{requestRecord.email || requestRecord.normalizedEmail}</td>
+                  <td>{requestRecord.status || "--"}</td>
+                  <td>{formatTimestamp(requestRecord.requestedAt)}</td>
+                  <td>
+                    <select
+                      className="admin-action-select"
+                      aria-label={`Actions for ${requestRecord.email || requestRecord.normalizedEmail}`}
+                      defaultValue=""
+                      onChange={(event) => {
+                        void handlePendingRequestAction(requestRecord, event.target.value);
+                        event.target.value = "";
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      <option value="" disabled>
+                        Actions
+                      </option>
+                      <option value="approve">Approve</option>
+                      <option value="denied">Deny</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ) : null}
-
-      <div className="section-heading admin-subsection">
-        <div>
-          <p className="eyebrow">Dashboard Notes</p>
-          <h2>Publish a shared dashboard note</h2>
-          <p>Create a note that approved users and admins can read from the shared dashboard home.</p>
-        </div>
-      </div>
-
-      <AdminNoteForm onCreated={loadAllowedEmails} />
-
-      <div className="section-heading admin-subsection">
-        <div>
-          <p className="eyebrow">Recent Notes</p>
-          <h2>Recent dashboard notes</h2>
-          <p>Admins can review the latest saved notes here, including unpublished drafts.</p>
-        </div>
-      </div>
-
-      {!loading ? (
-        <NotesList
-          notes={recentNotes}
-          ariaLabel="Recent dashboard notes"
-          emptyTitle="No dashboard notes yet."
-          emptyMessage="Create the first note above to populate the shared dashboard feed."
-          showAuthorEmail
-          showPublicationStatus
-        />
       ) : null}
     </section>
   );

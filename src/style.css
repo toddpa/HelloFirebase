@@ -285,6 +285,49 @@ h2 {
   margin-top: 1rem;
 }
 
+.admin-table-shell {
+  margin-top: 1rem;
+  overflow-x: auto;
+  border-radius: 20px;
+  border: 1px solid rgba(90, 122, 105, 0.18);
+  background: rgba(244, 251, 246, 0.95);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 0.95rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(90, 122, 105, 0.18);
+}
+
+.admin-table th {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5a7a69;
+  background: rgba(236, 244, 247, 0.9);
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-action-select {
+  min-width: 8.5rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(90, 122, 105, 0.28);
+  background: #fff;
+  color: #1f3529;
+}
+
 .record-card {
   padding: 1rem 1.1rem;
   border-radius: 20px;
@@ -428,6 +471,10 @@ h2 {
   .checkbox-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .admin-table {
+    min-width: 0;
   }
 
   .debug-grid {

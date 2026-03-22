@@ -87,27 +87,10 @@ export default function AdminNoteForm({ onCreated }: AdminNoteFormProps) {
         />
       </div>
 
-      <label className="checkbox-row" htmlFor="dashboard-note-published">
-        <input
-          id="dashboard-note-published"
-          type="checkbox"
-          checked={formState.published}
-          onChange={(event) =>
-            setFormState((currentState) => ({
-              ...currentState,
-              published: event.target.checked,
-            }))
-          }
-          disabled={isSubmitting}
-        />
-        <span>Publish this note to the shared dashboard</span>
-      </label>
-
       <div className="button-row">
         <button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : "Publish note"}
         </button>
-        <p className="muted-copy">Only administrators can create notes, and published notes appear on the shared dashboard.</p>
       </div>
 
       {successMessage ? <p className="success-copy">{successMessage}</p> : null}

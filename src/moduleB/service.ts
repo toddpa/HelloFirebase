@@ -7,6 +7,10 @@ function normalizeFormValue(value: string) {
   return value.trim();
 }
 
+function normalizeUserValue(value: string | null | undefined) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 export function toModuleBWriteErrorMessage(error: unknown) {
   if (
     typeof error === "object" &&
@@ -27,6 +31,7 @@ export function toModuleBWriteErrorMessage(error: unknown) {
 export async function createModuleBRecord(user: User, formState: ModuleBFormState) {
   const title = normalizeFormValue(formState.title);
   const details = normalizeFormValue(formState.details);
+  const userUid = normalizeUserValue(user.uid);
 
   if (!title) {
     throw new Error("Enter a short title before saving.");
@@ -36,15 +41,14 @@ export async function createModuleBRecord(user: User, formState: ModuleBFormStat
     throw new Error("Enter the update details before saving.");
   }
 
-  if (!user.email) {
-    throw new Error("A signed-in admin email is required before saving.");
+  if (!userUid) {
+    throw new Error("A signed-in admin uid is required before saving.");
   }
 
   const documentReference = await addDoc(collection(db, MODULE_B_COLLECTION), {
     title,
-    details,
-    createdBy: user.uid,
-    createdByEmail: user.email,
+    description: details,
+    createdBy: userUid,
     createdAt: serverTimestamp(),
   } satisfies Omit<ModuleBRecord, "createdAt"> & {
     createdAt: ReturnType<typeof serverTimestamp>;

@@ -115,8 +115,7 @@ export default function AdminAccessControl() {
       <section className="panel">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Admin Tools</p>
-            <h2>Approved subscriber allow list</h2>
+            <h2>Approved subscriber emails</h2>
           </div>
           <button type="button" className="secondary-button" onClick={() => void loadAdminData()}>
             Refresh
@@ -165,8 +164,7 @@ export default function AdminAccessControl() {
       <section className="panel">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Review Queue</p>
-            <h2>Access requests</h2>
+            <h2>Pending access requests</h2>
           </div>
         </div>
         {loading ? <p>Loading access requests...</p> : null}
