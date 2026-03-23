@@ -1,0 +1,24 @@
+import type { ReactNode } from "react";
+
+type SectionPanelProps = {
+  title: string;
+  eyebrow?: string;
+  action?: ReactNode;
+  children: ReactNode;
+};
+
+export default function SectionPanel({ title, eyebrow, action, children }: SectionPanelProps) {
+  return (
+    <section className="panel">
+      <div className="section-heading">
+        <div>
+          {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
+          <h2>{title}</h2>
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+

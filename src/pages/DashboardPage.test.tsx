@@ -3,19 +3,26 @@ import type { Timestamp } from "firebase/firestore";
 import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 import { useAuth } from "../auth/useAuth";
-import { listPublishedDashboardNotes } from "../features/notes";
+import { listPublishedDashboardNotes } from "../features/notes/notesService";
 import DashboardPage from "./DashboardPage";
 
 vi.mock("../auth/useAuth", () => ({
   useAuth: vi.fn(),
 }));
 
-vi.mock("../features/notes", () => ({
-  listPublishedDashboardNotes: vi.fn(),
-  toDashboardNotesErrorMessage: vi.fn((error: unknown) =>
-    error instanceof Error ? error.message : "Unable to load dashboard notes right now."
-  ),
-}));
+vi.mock("../features/notes/notesService", async () => {
+  const actual = await vi.importActual<typeof import("../features/notes/notesService")>(
+    "../features/notes/notesService"
+  );
+
+  return {
+    ...actual,
+    listPublishedDashboardNotes: vi.fn(),
+    toDashboardNotesErrorMessage: vi.fn((error: unknown) =>
+      error instanceof Error ? error.message : "Unable to load dashboard notes right now."
+    ),
+  };
+});
 
 function createTimestamp(isoString: string) {
   const date = new Date(isoString);

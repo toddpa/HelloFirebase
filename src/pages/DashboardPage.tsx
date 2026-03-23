@@ -1,46 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuth } from "../auth/useAuth";
-import NotesList from "../components/notes/NotesList";
-import {
-  listPublishedDashboardNotes,
-  toDashboardNotesErrorMessage,
-  type DashboardNote,
-} from "../features/notes";
+import { NoteList } from "../components/notes";
+import { FeedbackMessage, SectionPanel } from "../components/ui";
+import { useDashboardNotes } from "../features/notes";
 
 export default function DashboardPage() {
   const { accessState, user } = useAuth();
-  const [notes, setNotes] = useState<DashboardNote[]>([]);
-  const [notesLoading, setNotesLoading] = useState(true);
-  const [notesErrorMessage, setNotesErrorMessage] = useState<string | null>(null);
+  const { notes, loading, errorMessage, refresh } = useDashboardNotes();
 
   const roleLabel = accessState === "admin" ? "Administrator" : "Approved user";
   const isAdmin = accessState === "admin";
 
-  async function loadNotes() {
-    setNotesLoading(true);
-    setNotesErrorMessage(null);
-
-    try {
-      const nextNotes = await listPublishedDashboardNotes();
-      setNotes(nextNotes);
-    } catch (error: unknown) {
-      setNotes([]);
-      setNotesErrorMessage(toDashboardNotesErrorMessage(error));
-    } finally {
-      setNotesLoading(false);
-    }
-  }
-
   useEffect(() => {
     if (accessState !== "approved" && accessState !== "admin") {
-      setNotes([]);
-      setNotesLoading(false);
-      setNotesErrorMessage(null);
       return;
     }
 
-    void loadNotes();
-  }, [accessState]);
+    void refresh();
+  }, [accessState, refresh]);
 
   return (
     <div className="dashboard-home-grid">
@@ -56,38 +33,31 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="panel">
-        <div className="section-heading">
-          <div>
-            <h2>Notes</h2>
-          </div>
+      <SectionPanel
+        title="Notes"
+        action={
           <button
             type="button"
             className="secondary-button"
-            onClick={() => void loadNotes()}
-            disabled={notesLoading}
+            onClick={() => void refresh()}
+            disabled={loading}
           >
             Refresh
           </button>
-        </div>
+        }
+      >
+        <FeedbackMessage kind="error" message={errorMessage} />
+        {loading ? <p>Loading dashboard notes...</p> : null}
 
-        {notesErrorMessage ? (
-          <p className="auth-error" role="alert">
-            {notesErrorMessage}
-          </p>
-        ) : null}
-
-        {notesLoading ? <p>Loading dashboard notes...</p> : null}
-
-        {!notesLoading && !notesErrorMessage ? (
-          <NotesList
+        {!loading && !errorMessage ? (
+          <NoteList
             notes={notes}
             ariaLabel="Dashboard notes"
             emptyTitle="No notes available yet."
-            showAuthorEmail={isAdmin}
+            displayOptions={{ showAuthorEmail: isAdmin }}
           />
         ) : null}
-      </section>
+      </SectionPanel>
     </div>
   );
 }

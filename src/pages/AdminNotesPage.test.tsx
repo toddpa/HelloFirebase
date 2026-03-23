@@ -1,21 +1,28 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { useAuth } from "../auth/useAuth";
-import { createDashboardNote, listRecentDashboardNotes } from "../features/notes";
+import { createDashboardNote, listRecentDashboardNotes } from "../features/notes/notesService";
 import AdminNotesPage from "./AdminNotesPage";
 
 vi.mock("../auth/useAuth", () => ({
   useAuth: vi.fn(),
 }));
 
-vi.mock("../features/notes", () => ({
-  createDashboardNote: vi.fn(),
-  listRecentDashboardNotes: vi.fn(),
-}));
+vi.mock("../features/notes/notesService", async () => {
+  const actual = await vi.importActual<typeof import("../features/notes/notesService")>(
+    "../features/notes/notesService"
+  );
+
+  return {
+    ...actual,
+    createDashboardNote: vi.fn(),
+    listRecentDashboardNotes: vi.fn(),
+  };
+});
 
 describe("AdminNotesPage", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it("shows an unauthorized state for non-admin users", () => {

@@ -1,38 +1,45 @@
-import type { DashboardNote } from "../../features/notes";
+import type { ReactNode } from "react";
+import type { NoteDisplayOptions, NoteRecord } from "./types";
 
 type NoteCardProps = {
-  note: DashboardNote;
-  showAuthorEmail?: boolean;
-  showPublicationStatus?: boolean;
+  note: NoteRecord;
+  displayOptions?: NoteDisplayOptions;
+  actions?: ReactNode;
 };
 
-function formatTimestampLabel(dateLabel: string, value: DashboardNote["createdAt" | "updatedAt"]) {
+function formatTimestampLabel(label: string, value: NoteRecord["createdAt" | "updatedAt"]) {
   if (!value) {
-    return `${dateLabel}: Not available`;
+    return `${label}: Not available`;
   }
 
-  return `${dateLabel}: ${value.toDate().toLocaleString()}`;
+  return `${label}: ${value.toDate().toLocaleString()}`;
 }
 
-export default function NoteCard({
-  note,
-  showAuthorEmail = false,
-  showPublicationStatus = false,
-}: NoteCardProps) {
+export default function NoteCard({ note, displayOptions, actions }: NoteCardProps) {
+  const showUpdatedAt = displayOptions?.showUpdatedAt ?? true;
+  const showAuthorEmail = displayOptions?.showAuthorEmail ?? false;
+  const showPublicationStatus = displayOptions?.showPublicationStatus ?? false;
+
   return (
     <article className="record-card note-card">
       <div className="note-card-header">
         <div>
           <strong>{note.title}</strong>
           <p className="muted-copy">{formatTimestampLabel("Created", note.createdAt)}</p>
-          {note.updatedAt ? <p className="muted-copy">{formatTimestampLabel("Updated", note.updatedAt)}</p> : null}
+          {showUpdatedAt && note.updatedAt ? (
+            <p className="muted-copy">{formatTimestampLabel("Updated", note.updatedAt)}</p>
+          ) : null}
         </div>
-        {showPublicationStatus ? (
-          <span className="status-pill">{note.published ? "Published" : "Draft"}</span>
-        ) : null}
+        <div className="button-row">
+          {showPublicationStatus ? (
+            <span className="status-pill">{note.published ? "Published" : "Draft"}</span>
+          ) : null}
+          {actions}
+        </div>
       </div>
       <p className="note-body">{note.body}</p>
-      {showAuthorEmail ? <p className="muted-copy">Posted by {note.createdByEmail}</p> : null}
+      {showAuthorEmail && note.createdByEmail ? <p className="muted-copy">Posted by {note.createdByEmail}</p> : null}
     </article>
   );
 }
+

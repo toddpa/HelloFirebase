@@ -635,4 +635,224 @@ describe("Firestore access control rules", () => {
     await assertSucceeds(getDoc(doc(mixedCaseDb, "subscriberContent", "welcome")));
     await assertSucceeds(getDoc(doc(mixedCaseDb, "accessRequests", "member@example.com")));
   });
+
+  it("lets admins review pending access requests only when immutable fields stay unchanged", async () => {
+    await seedAsAdmin({
+      adminUsers: [
+        {
+          id: "admin@example.com",
+          value: {
+            uid: "admin-uid",
+            email: "admin@example.com",
+            normalizedEmail: "admin@example.com",
+            role: "admin",
+          },
+        },
+      ],
+      accessRequests: [
+        {
+          id: "person@example.com",
+          value: {
+            email: "person@example.com",
+            normalizedEmail: "person@example.com",
+            uid: "person-uid",
+            status: "pending",
+            requestedAt: new Date("2026-03-17T00:00:00.000Z"),
+            reviewedAt: null,
+            reviewedBy: null,
+          },
+        },
+      ],
+    });
+
+    const adminDb = authedContext("admin@example.com", "admin-uid").firestore();
+
+    await assertSucceeds(
+      updateDoc(doc(adminDb, "accessRequests", "person@example.com"), {
+        status: "approved",
+        reviewedAt: serverTimestamp(),
+        reviewedBy: "admin-uid",
+      })
+    );
+
+    await seedAsAdmin({
+      accessRequests: [
+        {
+          id: "person@example.com",
+          value: {
+            email: "person@example.com",
+            normalizedEmail: "person@example.com",
+            uid: "person-uid",
+            status: "pending",
+            requestedAt: new Date("2026-03-17T00:00:00.000Z"),
+            reviewedAt: null,
+            reviewedBy: null,
+          },
+        },
+      ],
+    });
+
+    await assertFails(
+      setDoc(doc(adminDb, "accessRequests", "person@example.com"), {
+        email: "changed@example.com",
+        normalizedEmail: "person@example.com",
+        uid: "person-uid",
+        status: "approved",
+        requestedAt: new Date("2026-03-17T00:00:00.000Z"),
+        reviewedAt: serverTimestamp(),
+        reviewedBy: "admin-uid",
+      })
+    );
+  });
+
+  it("lets admins write subscriber content and blocks approved users from writing it", async () => {
+    await seedAsAdmin({
+      adminUsers: [
+        {
+          id: "admin@example.com",
+          value: {
+            uid: "admin-uid",
+            email: "admin@example.com",
+            normalizedEmail: "admin@example.com",
+            role: "admin",
+          },
+        },
+      ],
+      allowedEmails: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "member@example.com",
+            normalizedEmail: "member@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+      ],
+    });
+
+    const adminDb = authedContext("admin@example.com", "admin-uid").firestore();
+    const memberDb = authedContext("member@example.com", "member-uid").firestore();
+
+    await assertSucceeds(
+      setDoc(doc(adminDb, "subscriberContent", "welcome"), {
+        title: "Subscriber welcome",
+      })
+    );
+
+    await assertFails(
+      setDoc(doc(memberDb, "subscriberContent", "welcome"), {
+        title: "Forged subscriber content",
+      })
+    );
+  });
+
+  it("lets admin users read their own admin marker but blocks non-admin users from reading adminUsers", async () => {
+    await seedAsAdmin({
+      adminUsers: [
+        {
+          id: "admin@example.com",
+          value: {
+            uid: "admin-uid",
+            email: "admin@example.com",
+            normalizedEmail: "admin@example.com",
+            role: "admin",
+          },
+        },
+      ],
+      allowedEmails: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "member@example.com",
+            normalizedEmail: "member@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+      ],
+    });
+
+    const adminDb = authedContext("admin@example.com", "admin-uid").firestore();
+    const memberDb = authedContext("member@example.com", "member-uid").firestore();
+
+    await assertSucceeds(getDoc(doc(adminDb, "adminUsers", "admin@example.com")));
+    await assertFails(getDoc(doc(memberDb, "adminUsers", "admin@example.com")));
+  });
+
+  it("enforces payload validation for admin announcements and dashboard notes", async () => {
+    await seedAsAdmin({
+      adminUsers: [
+        {
+          id: "admin@example.com",
+          value: {
+            uid: "admin-uid",
+            email: "admin@example.com",
+            normalizedEmail: "admin@example.com",
+            role: "admin",
+          },
+        },
+      ],
+    });
+
+    const adminDb = authedContext("admin@example.com", "admin-uid").firestore();
+
+    await assertFails(
+      setDoc(doc(adminDb, "adminAnnouncements", "bad-note"), {
+        title: "Ops note",
+        description: "",
+        createdBy: "admin-uid",
+        createdAt: serverTimestamp(),
+      })
+    );
+
+    await assertFails(
+      setDoc(doc(adminDb, "dashboardNotes", "bad-dashboard-note"), {
+        title: "Bad dashboard note",
+        body: "This payload has the wrong author email.",
+        createdAt: serverTimestamp(),
+        createdByUid: "admin-uid",
+        createdByEmail: "other@example.com",
+        updatedAt: null,
+        published: true,
+      })
+    );
+  });
+
+  it("enforces payload validation for approved users creating private notes", async () => {
+    await seedAsAdmin({
+      allowedEmails: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "member@example.com",
+            normalizedEmail: "member@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+      ],
+    });
+
+    const memberDb = authedContext("member@example.com", "member-uid").firestore();
+
+    await assertFails(
+      setDoc(doc(memberDb, "userNotes", "member-uid", "notes", "bad-note"), {
+        title: "Bad private note",
+        body: "The metadata is forged.",
+        createdAt: serverTimestamp(),
+        updatedAt: null,
+        createdByUid: "other-uid",
+        createdByEmail: "member@example.com",
+      })
+    );
+
+    await assertFails(
+      setDoc(doc(memberDb, "userNotes", "member-uid", "notes", "also-bad-note"), {
+        title: "Another bad note",
+        body: "updatedAt must be null on create.",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        createdByUid: "member-uid",
+        createdByEmail: "member@example.com",
+      })
+    );
+  });
 });

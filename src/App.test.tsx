@@ -3,7 +3,7 @@ import type { Timestamp } from "firebase/firestore";
 import { vi } from "vitest";
 import App from "./App";
 import { useAuth } from "./auth/useAuth";
-import { listPublishedDashboardNotes } from "./features/notes";
+import { listPublishedDashboardNotes } from "./features/notes/notesService";
 
 vi.mock("./auth/useAuth", () => ({
   useAuth: vi.fn(),
@@ -21,14 +21,21 @@ vi.mock("./access/service", () => ({
   submitAccessRequest: vi.fn(),
 }));
 
-vi.mock("./features/notes", () => ({
-  listPublishedDashboardNotes: vi.fn().mockResolvedValue([]),
-  listRecentDashboardNotes: vi.fn().mockResolvedValue([]),
-  createDashboardNote: vi.fn(),
-  toDashboardNotesErrorMessage: vi.fn((error: unknown) =>
-    error instanceof Error ? error.message : "Unable to load dashboard notes right now."
-  ),
-}));
+vi.mock("./features/notes/notesService", async () => {
+  const actual = await vi.importActual<typeof import("./features/notes/notesService")>(
+    "./features/notes/notesService"
+  );
+
+  return {
+    ...actual,
+    listPublishedDashboardNotes: vi.fn().mockResolvedValue([]),
+    listRecentDashboardNotes: vi.fn().mockResolvedValue([]),
+    createDashboardNote: vi.fn(),
+    toDashboardNotesErrorMessage: vi.fn((error: unknown) =>
+      error instanceof Error ? error.message : "Unable to load dashboard notes right now."
+    ),
+  };
+});
 
 function createTimestamp(isoString: string) {
   const date = new Date(isoString);

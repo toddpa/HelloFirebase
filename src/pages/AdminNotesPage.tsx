@@ -1,38 +1,21 @@
-import { useEffect, useState } from "react";
-import AdminNoteForm from "../components/notes/AdminNoteForm";
-import NotesList from "../components/notes/NotesList";
+import { useEffect } from "react";
 import { useAuth } from "../auth/useAuth";
-import { listRecentDashboardNotes, type DashboardNote } from "../features/notes";
+import { NoteEditor, NoteList, type NoteDraft } from "../components/notes";
+import { SectionPanel } from "../components/ui";
+import { useDashboardNotes } from "../features/notes";
 
 export default function AdminNotesPage() {
-  const { accessState } = useAuth();
-  const [recentNotes, setRecentNotes] = useState<DashboardNote[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  async function loadRecentNotes() {
-    setLoading(true);
-    setErrorMessage(null);
-
-    try {
-      const noteRecords = await listRecentDashboardNotes();
-      setRecentNotes(noteRecords);
-    } catch (error: unknown) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unable to load the dashboard notes."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { accessState, user } = useAuth();
+  const { notes, loading, isSubmitting, errorMessage, successMessage, refresh, createNote } =
+    useDashboardNotes({ includeUnpublished: true });
 
   useEffect(() => {
     if (accessState !== "admin") {
       return;
     }
 
-    void loadRecentNotes();
-  }, [accessState]);
+    void refresh();
+  }, [accessState, refresh]);
 
   if (accessState !== "admin") {
     return (
@@ -44,34 +27,52 @@ export default function AdminNotesPage() {
   }
 
   return (
-    <section className="panel">
-      <div className="section-heading">
-        <div>
-          <h2>Dashboard notes</h2>
-        </div>
+    <SectionPanel
+      title="Dashboard notes"
+      action={
         <button
           type="button"
           className="secondary-button"
-          onClick={() => void loadRecentNotes()}
-          disabled={loading}
+          onClick={() => void refresh()}
+          disabled={loading || isSubmitting}
         >
           Refresh
         </button>
-      </div>
-
-      {errorMessage ? (
-        <p className="auth-error" role="alert">
-          {errorMessage}
-        </p>
-      ) : null}
-
+      }
+    >
       <div className="section-heading admin-subsection">
         <div>
           <h3>Create note</h3>
         </div>
       </div>
 
-      <AdminNoteForm onCreated={loadRecentNotes} />
+      <NoteEditor
+        mode="create"
+        initialValue={{ title: "", body: "", published: true }}
+        titleFieldId="dashboard-note-title"
+        bodyFieldId="dashboard-note-body"
+        publishedFieldId="dashboard-note-published"
+        showPublishedToggle
+        isSubmitting={isSubmitting}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+        placeholders={{
+          title: "Weekly dashboard briefing",
+          body: "Share the update approved users should see on the dashboard.",
+        }}
+        labels={{
+          createSubmitLabel: "Publish note",
+          unpublishedSubmitLabel: "Save draft",
+          savingLabel: "Saving...",
+        }}
+        onSubmit={async (draft: NoteDraft) => {
+          if (!user) {
+            throw new Error("You must be signed in as an administrator before saving.");
+          }
+
+          await createNote(user, draft);
+        }}
+      />
 
       <div className="section-heading admin-subsection">
         <div>
@@ -82,15 +83,14 @@ export default function AdminNotesPage() {
       {loading ? <p>Loading dashboard notes...</p> : null}
 
       {!loading ? (
-        <NotesList
-          notes={recentNotes}
+        <NoteList
+          notes={notes}
           ariaLabel="Recent dashboard notes"
           emptyTitle="No dashboard notes yet."
           emptyMessage="Create the first note above to populate the shared dashboard feed."
-          showAuthorEmail
-          showPublicationStatus
+          displayOptions={{ showAuthorEmail: true, showPublicationStatus: true }}
         />
       ) : null}
-    </section>
+    </SectionPanel>
   );
 }
