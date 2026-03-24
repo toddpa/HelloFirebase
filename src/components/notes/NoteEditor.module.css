@@ -4,6 +4,14 @@
   margin: var(--space-8) 0 0;
 }
 
+.actionRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-8);
+  flex-wrap: nowrap;
+}
+
 .checkboxRow {
   display: flex;
   gap: var(--space-8);
@@ -16,6 +24,10 @@
 }
 
 @media (max-width: 780px) {
+  .actionRow {
+    flex-wrap: wrap;
+  }
+
   .checkboxRow {
     flex-direction: column;
     align-items: flex-start;

@@ -101,7 +101,7 @@ export default function NotesListPage() {
   }, [status, user]);
 
   return (
-    <SectionPanel title={pageCopy.title} eyebrow="Notes">
+    <SectionPanel title={pageCopy.title}>
       {errorMessage ? (
         <p className="auth-error panel" role="alert">
           {errorMessage}

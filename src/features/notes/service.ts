@@ -117,6 +117,28 @@ function toServerTimestampOrNull(shouldInclude: boolean) {
   return shouldInclude ? serverTimestamp() : null;
 }
 
+function validateNoteContent(
+  title: string,
+  body: string,
+  status: typeof NOTE_STATUS.draft | typeof NOTE_STATUS.published
+) {
+  if (status === NOTE_STATUS.draft) {
+    if (!title && !body) {
+      throw new Error("Enter a note title or details before saving.");
+    }
+
+    return;
+  }
+
+  if (!title) {
+    throw new Error("Enter a note title before saving.");
+  }
+
+  if (!body) {
+    throw new Error("Enter the note details before saving.");
+  }
+}
+
 export async function createNote(user: User, input: CreateNoteInput) {
   const title = normalizeFormValue(input.title);
   const body = normalizeFormValue(input.body);
@@ -126,13 +148,7 @@ export async function createNote(user: User, input: CreateNoteInput) {
     input.visibility === NOTE_VISIBILITY.shared && input.status === NOTE_STATUS.published
   );
 
-  if (!title) {
-    throw new Error("Enter a note title before saving.");
-  }
-
-  if (!body) {
-    throw new Error("Enter the note details before saving.");
-  }
+  validateNoteContent(title, body, input.status);
 
   if (!authorId) {
     throw new Error("A signed-in user uid is required before saving.");
@@ -169,13 +185,7 @@ export async function updateNote(noteId: string, input: UpdateNoteInput) {
     throw new Error("A note id is required before saving changes.");
   }
 
-  if (!title) {
-    throw new Error("Enter a note title before saving.");
-  }
-
-  if (!body) {
-    throw new Error("Enter the note details before saving.");
-  }
+  validateNoteContent(title, body, input.status);
 
   await updateDoc(doc(db, NOTES_COLLECTION, normalizedNoteId), {
     title,

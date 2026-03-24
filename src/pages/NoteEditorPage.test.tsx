@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../auth/useAuth";
 import { createNote, deleteNote, getNoteById, updateNote } from "../features/notes";
+import noteEditorStyles from "../components/notes/NoteEditor.module.css";
 import NoteEditorPage from "./NoteEditorPage";
 
 vi.mock("../auth/useAuth", () => ({
@@ -51,9 +52,9 @@ describe("NoteEditorPage", () => {
     });
   });
 
-  function renderPage(initialPathname: string) {
+  function renderPage(initialEntry: string | { pathname: string; state?: Record<string, unknown> }) {
     return render(
-      <MemoryRouter initialEntries={[initialPathname]}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/notes/new" element={<NoteEditorPage />} />
           <Route path="/notes/:noteId" element={<NoteEditorPage />} />
@@ -93,6 +94,67 @@ describe("NoteEditorPage", () => {
     });
 
     expect(await screen.findByText("Draft list route")).toBeInTheDocument();
+  });
+
+  it("shows cancel on create and returns to the provided notes context", async () => {
+    renderPage({
+      pathname: "/notes/new",
+      state: { returnTo: "/notes/published" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(await screen.findByText("Published list route")).toBeInTheDocument();
+  });
+
+  it("returns create cancel to drafts when no prior notes context is available", async () => {
+    renderPage("/notes/new");
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(await screen.findByText("Draft list route")).toBeInTheDocument();
+  });
+
+  it("disables create actions until the draft content is valid", () => {
+    renderPage("/notes/new");
+
+    const publishButton = screen.getByRole("button", { name: "Publish" });
+    const saveDraftButton = screen.getByRole("button", { name: "Save Draft" });
+
+    expect(publishButton).toBeDisabled();
+    expect(saveDraftButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "   " },
+    });
+    fireEvent.change(screen.getByLabelText("Body"), {
+      target: { value: "   " },
+    });
+
+    expect(publishButton).toBeDisabled();
+    expect(saveDraftButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Draft title" },
+    });
+
+    expect(publishButton).toBeDisabled();
+    expect(saveDraftButton).toBeEnabled();
+
+    fireEvent.change(screen.getByLabelText("Body"), {
+      target: { value: "Draft body" },
+    });
+
+    expect(publishButton).toBeEnabled();
+    expect(saveDraftButton).toBeEnabled();
+  });
+
+  it("prevents empty create submissions from triggering save handlers", () => {
+    renderPage("/notes/new");
+
+    expect(screen.getByRole("button", { name: "Publish" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save Draft" })).toBeDisabled();
+    expect(vi.mocked(createNote)).not.toHaveBeenCalled();
   });
 
   it("creates a published note and redirects to published", async () => {
@@ -164,6 +226,83 @@ describe("NoteEditorPage", () => {
     });
 
     expect(await screen.findByText("Draft list route")).toBeInTheDocument();
+  });
+
+  it("keeps edit actions in a single shared action row", async () => {
+    vi.mocked(getNoteById).mockResolvedValue({
+      id: "note-1",
+      title: "Existing title",
+      body: "Existing body",
+      status: "draft",
+      visibility: "private",
+      authorId: "member-1",
+      authorEmail: "member@example.com",
+      createdAt: createTimestamp("2026-03-20T10:00:00.000Z"),
+      updatedAt: createTimestamp("2026-03-21T10:00:00.000Z"),
+      publishedAt: null,
+    });
+
+    renderPage("/notes/note-1");
+
+    const saveButton = await screen.findByRole("button", { name: "Save" });
+    const publishButton = screen.getByRole("button", { name: "Publish" });
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
+    const deleteButton = screen.getByRole("button", { name: "Delete" });
+    const actionRow = saveButton.parentElement;
+
+    expect(actionRow).toHaveClass(noteEditorStyles.actionRow);
+    expect(publishButton.parentElement).toBe(actionRow);
+    expect(cancelButton.parentElement).toBe(actionRow);
+    expect(deleteButton.parentElement).toBe(actionRow);
+  });
+
+  it("applies create-equivalent validation rules in edit mode", async () => {
+    vi.mocked(getNoteById).mockResolvedValue({
+      id: "note-1",
+      title: "Existing title",
+      body: "Existing body",
+      status: "draft",
+      visibility: "private",
+      authorId: "member-1",
+      authorEmail: "member@example.com",
+      createdAt: createTimestamp("2026-03-20T10:00:00.000Z"),
+      updatedAt: createTimestamp("2026-03-21T10:00:00.000Z"),
+      publishedAt: null,
+    });
+
+    renderPage("/notes/note-1");
+
+    await screen.findByDisplayValue("Existing title");
+
+    const saveButton = screen.getByRole("button", { name: "Save" });
+    const publishButton = screen.getByRole("button", { name: "Publish" });
+
+    expect(saveButton).toBeEnabled();
+    expect(publishButton).toBeEnabled();
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "   " },
+    });
+    fireEvent.change(screen.getByLabelText("Body"), {
+      target: { value: "   " },
+    });
+
+    expect(saveButton).toBeDisabled();
+    expect(publishButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Draft title" },
+    });
+
+    expect(saveButton).toBeEnabled();
+    expect(publishButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("Body"), {
+      target: { value: "Draft body" },
+    });
+
+    expect(saveButton).toBeEnabled();
+    expect(publishButton).toBeEnabled();
   });
 
   it("publishes an existing draft note", async () => {

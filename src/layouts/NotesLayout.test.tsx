@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import NotesLayout from "./NotesLayout";
@@ -22,20 +22,23 @@ describe("NotesLayout", () => {
   it("renders the notes workspace shell", () => {
     renderLayout("/notes/drafts");
 
-    expect(screen.getByRole("heading", { name: "Notes" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Create Note" })).toHaveAttribute("href", "/notes/new");
-    expect(screen.getByRole("link", { name: "Drafts" })).toHaveAttribute("href", "/notes/drafts");
-    expect(screen.getByRole("link", { name: "Published" })).toHaveAttribute("href", "/notes/published");
+    expect(screen.queryByRole("heading", { name: "Notes" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Drafts" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Published" })).not.toBeInTheDocument();
     expect(screen.getByText("Draft content")).toBeInTheDocument();
   });
 
-  it("keeps the secondary nav functional", () => {
-    renderLayout("/notes/drafts");
+  it("renders the create route content without a duplicate create trigger", () => {
+    renderLayout("/notes/new");
 
-    fireEvent.click(screen.getByRole("link", { name: "Published" }));
-    expect(screen.getByText("Published content")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("link", { name: "Create Note" }));
+    expect(screen.queryByRole("button", { name: "Create New" })).not.toBeInTheDocument();
     expect(screen.getByText("Create content")).toBeInTheDocument();
+  });
+
+  it("renders the edit route content without a duplicate create trigger", () => {
+    renderLayout("/notes/note-123");
+
+    expect(screen.queryByRole("button", { name: "Create New" })).not.toBeInTheDocument();
+    expect(screen.getByText("Note content")).toBeInTheDocument();
   });
 });

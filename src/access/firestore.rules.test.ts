@@ -433,6 +433,138 @@ describe("Firestore access control rules", () => {
     await assertFails(deleteDoc(doc(otherDb, "notes", "member-note")));
   });
 
+  it("lets an approved user create a published private note", async () => {
+    await seedAsAdmin({
+      allowedEmails: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "member@example.com",
+            normalizedEmail: "member@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+      ],
+    });
+
+    const memberDb = authedContext("member@example.com", "member-uid").firestore();
+
+    await assertSucceeds(
+      setDoc(doc(memberDb, "notes", "published-private-note"), {
+        title: "Published private note",
+        body: "Visible in the member's published notes view.",
+        status: "published",
+        visibility: "private",
+        authorId: "member-uid",
+        authorEmail: "member@example.com",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        publishedAt: null,
+      })
+    );
+
+    await assertSucceeds(getDoc(doc(memberDb, "notes", "published-private-note")));
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(memberDb, "notes"),
+          where("visibility", "==", "private"),
+          where("authorId", "==", "member-uid"),
+          where("status", "==", "published")
+        )
+      )
+    );
+  });
+
+  it("allows partial private drafts but still blocks empty drafts and incomplete published notes", async () => {
+    await seedAsAdmin({
+      allowedEmails: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "member@example.com",
+            normalizedEmail: "member@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+      ],
+      notes: [
+        {
+          id: "member-note",
+          value: {
+            title: "Existing draft",
+            body: "Existing body.",
+            status: "draft",
+            visibility: "private",
+            authorId: "member-uid",
+            authorEmail: "member@example.com",
+            createdAt: new Date("2026-03-17T01:00:00.000Z"),
+            updatedAt: new Date("2026-03-17T01:00:00.000Z"),
+            publishedAt: null,
+          },
+        },
+      ],
+    });
+
+    const memberDb = authedContext("member@example.com", "member-uid").firestore();
+
+    await assertSucceeds(
+      setDoc(doc(memberDb, "notes", "partial-draft"), {
+        title: "Title only",
+        body: "",
+        status: "draft",
+        visibility: "private",
+        authorId: "member-uid",
+        authorEmail: "member@example.com",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        publishedAt: null,
+      })
+    );
+
+    await assertSucceeds(
+      updateDoc(doc(memberDb, "notes", "member-note"), {
+        title: "",
+        body: "Body only update.",
+        status: "draft",
+        visibility: "private",
+        authorId: "member-uid",
+        authorEmail: "member@example.com",
+        createdAt: new Date("2026-03-17T01:00:00.000Z"),
+        updatedAt: serverTimestamp(),
+        publishedAt: null,
+      })
+    );
+
+    await assertFails(
+      setDoc(doc(memberDb, "notes", "empty-draft"), {
+        title: "",
+        body: "",
+        status: "draft",
+        visibility: "private",
+        authorId: "member-uid",
+        authorEmail: "member@example.com",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        publishedAt: null,
+      })
+    );
+
+    await assertFails(
+      updateDoc(doc(memberDb, "notes", "member-note"), {
+        title: "Missing body publish",
+        body: "",
+        status: "published",
+        visibility: "private",
+        authorId: "member-uid",
+        authorEmail: "member@example.com",
+        createdAt: new Date("2026-03-17T01:00:00.000Z"),
+        updatedAt: serverTimestamp(),
+        publishedAt: null,
+      })
+    );
+  });
+
   it("lets admins update and delete shared notes, while approved users still cannot modify them", async () => {
     await seedAsAdmin({
       adminUsers: [

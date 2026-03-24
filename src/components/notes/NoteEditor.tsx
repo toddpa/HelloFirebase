@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { FeedbackMessage } from "../ui";
 import type {
   NoteDraft,
@@ -26,10 +26,20 @@ type NoteEditorProps = {
   titleFieldId: string;
   bodyFieldId: string;
   publishedFieldId?: string;
+  primaryValidationMode?: "complete" | "partial";
+  secondaryValidationMode?: "complete" | "partial";
+  extraActions?: ReactNode;
   onSubmit: (draft: NoteDraft) => Promise<void> | void;
   onSecondarySubmit?: (draft: NoteDraft) => Promise<void> | void;
   onCancel?: () => void;
 };
+
+function canSubmitDraft(draft: Required<NoteDraft>, validationMode: "complete" | "partial") {
+  const hasTitle = draft.title.trim().length > 0;
+  const hasBody = draft.body.trim().length > 0;
+
+  return validationMode === "complete" ? hasTitle && hasBody : hasTitle || hasBody;
+}
 
 function normalizeDraft(value?: NoteDraft): Required<NoteDraft> {
   return {
@@ -51,6 +61,9 @@ export default function NoteEditor({
   titleFieldId,
   bodyFieldId,
   publishedFieldId,
+  primaryValidationMode = "complete",
+  secondaryValidationMode = "complete",
+  extraActions,
   onSubmit,
   onSecondarySubmit,
   onCancel,
@@ -86,6 +99,8 @@ export default function NoteEditor({
   const savingLabel = labels?.savingLabel ?? "Saving...";
   const submitLabel =
     mode === "edit" ? editSubmitLabel : showPublishedToggle && !draft.published ? unpublishedSubmitLabel : createSubmitLabel;
+  const isPrimaryDisabled = isSubmitting || !canSubmitDraft(draft, primaryValidationMode);
+  const isSecondaryDisabled = isSubmitting || !canSubmitDraft(draft, secondaryValidationMode);
 
   return (
     <form className={styles.form} onSubmit={(event) => void handleSubmit(event)}>
@@ -145,8 +160,8 @@ export default function NoteEditor({
         </label>
       ) : null}
 
-      <div className="button-row">
-        <button type="submit" disabled={isSubmitting}>
+      <div className={styles.actionRow}>
+        <button type="submit" disabled={isPrimaryDisabled}>
           {isSubmitting ? savingLabel : submitLabel}
         </button>
         {onSecondarySubmit ? (
@@ -154,16 +169,17 @@ export default function NoteEditor({
             type="button"
             className="secondary-button"
             onClick={() => void handleSubmission(onSecondarySubmit)}
-            disabled={isSubmitting}
+            disabled={isSecondaryDisabled}
           >
             {isSubmitting ? savingLabel : secondarySubmitLabel}
           </button>
         ) : null}
-        {mode === "edit" && onCancel ? (
+        {onCancel ? (
           <button type="button" className="secondary-button" onClick={onCancel} disabled={isSubmitting}>
             {labels?.cancelLabel ?? "Cancel"}
           </button>
         ) : null}
+        {extraActions}
       </div>
 
       <FeedbackMessage kind="success" message={successMessage} />

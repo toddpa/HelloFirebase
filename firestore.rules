@@ -84,17 +84,23 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    function hasValidNoteContent(data) {
+    function hasValidNoteBase(data) {
       return data.title is string
-        && data.title.size() > 0
         && data.body is string
-        && data.body.size() > 0
         && data.status in ["draft", "published"]
         && data.visibility in ["private", "shared"]
         && (
           !("publishedAt" in data)
           || data.publishedAt == null
           || data.publishedAt is timestamp
+        );
+    }
+
+    function hasValidNoteContent(data) {
+      return hasValidNoteBase(data)
+        && (
+          (data.status == "draft" && (data.title.size() > 0 || data.body.size() > 0))
+          || (data.status == "published" && data.title.size() > 0 && data.body.size() > 0)
         );
     }
 

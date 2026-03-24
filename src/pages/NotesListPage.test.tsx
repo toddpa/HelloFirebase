@@ -85,6 +85,7 @@ describe("NotesListPage", () => {
       authorId: "member-1",
       status: "draft",
     });
+    expect(screen.queryByText("Notes")).not.toBeInTheDocument();
     expect(screen.getByText(/Updated:/)).toBeInTheDocument();
     expect(screen.getByText(`${"A".repeat(159)}...`)).toBeInTheDocument();
   });

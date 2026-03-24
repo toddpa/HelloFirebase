@@ -21,11 +21,18 @@ export const ROUTES = {
 
 export const AUTHENTICATED_DASHBOARD_ACCESS_STATES = ["approved", "admin"] as const satisfies readonly AccessState[];
 
+export type DashboardNavChild = {
+  to: string;
+  label: string;
+};
+
 export type DashboardRouteConfig = {
   to: string;
   label: string;
   allowedAccessStates: AccessState[];
   showInNavigation?: boolean;
+  matchPrefixes?: string[];
+  children?: DashboardNavChild[];
 };
 
 export const DASHBOARD_ROUTE_CONFIG: DashboardRouteConfig[] = [
@@ -43,6 +50,17 @@ export const DASHBOARD_ROUTE_CONFIG: DashboardRouteConfig[] = [
     to: ROUTES.notesDrafts,
     label: "Notes",
     allowedAccessStates: [...AUTHENTICATED_DASHBOARD_ACCESS_STATES],
+    matchPrefixes: [ROUTES.notes],
+    children: [
+      {
+        to: ROUTES.notesDrafts,
+        label: "Drafts",
+      },
+      {
+        to: ROUTES.notesPublished,
+        label: "Published",
+      },
+    ],
   },
 ];
 
@@ -61,7 +79,13 @@ export function getDashboardNavItems(accessState: AccessState | null) {
 }
 
 export function getRouteConfig(pathname: string) {
-  return DASHBOARD_ROUTE_CONFIG.find((route) => route.to === pathname);
+  return DASHBOARD_ROUTE_CONFIG.find((route) => {
+    if (route.to === pathname) {
+      return true;
+    }
+
+    return route.matchPrefixes?.some((prefix) => pathname.startsWith(prefix)) ?? false;
+  });
 }
 
 export function getRouteLabel(pathname: string) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ROUTES } from "../access/routes";
 import { useAuth } from "../auth/useAuth";
 import { NoteEditor, type NoteDraft } from "../components/notes";
@@ -20,6 +20,10 @@ function getRedirectPath(status: typeof NOTE_STATUS.draft | typeof NOTE_STATUS.p
   return status === NOTE_STATUS.published ? ROUTES.notesPublished : ROUTES.notesDrafts;
 }
 
+function isNotesListRoute(pathname: string) {
+  return pathname === ROUTES.notesDrafts || pathname === ROUTES.notesPublished;
+}
+
 function toEditorDraft(note: NoteRecord): NoteDraft {
   return {
     title: note.title,
@@ -29,6 +33,7 @@ function toEditorDraft(note: NoteRecord): NoteDraft {
 }
 
 export default function NoteEditorPage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { noteId } = useParams();
   const { user } = useAuth();
@@ -48,6 +53,14 @@ export default function NoteEditorPage() {
       ? NOTE_STATUS.draft
       : NOTE_STATUS.published
     : NOTE_STATUS.draft;
+  const returnTo =
+    typeof location.state === "object" &&
+    location.state !== null &&
+    "returnTo" in location.state &&
+    typeof location.state.returnTo === "string" &&
+    isNotesListRoute(location.state.returnTo)
+      ? location.state.returnTo
+      : ROUTES.notesDrafts;
 
   useEffect(() => {
     let isActive = true;
@@ -193,42 +206,48 @@ export default function NoteEditorPage() {
           title: "Planning note",
           body: "Capture the details you want to keep with this note.",
         }}
+        primaryValidationMode={isEditMode ? "partial" : primaryStatus === NOTE_STATUS.published ? "complete" : "partial"}
+        secondaryValidationMode={secondaryStatus === NOTE_STATUS.published ? "complete" : "partial"}
+        extraActions={
+          isEditMode
+            ? !isConfirmingDelete
+              ? (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => setIsConfirmingDelete(true)}
+                    disabled={isSubmitting}
+                  >
+                    Delete
+                  </button>
+                )
+              : (
+                  <>
+                    <button type="button" onClick={() => void handleDelete()} disabled={isSubmitting}>
+                      Confirm Delete
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => setIsConfirmingDelete(false)}
+                      disabled={isSubmitting}
+                    >
+                      Cancel Delete
+                    </button>
+                  </>
+                )
+            : null
+        }
         onSubmit={async (draft) => {
           await saveNote(primaryStatus, draft);
         }}
         onSecondarySubmit={async (draft) => {
           await saveNote(secondaryStatus, draft);
         }}
-        onCancel={isEditMode ? () => navigate(getRedirectPath(loadedNote?.status ?? NOTE_STATUS.draft)) : undefined}
+        onCancel={() =>
+          navigate(isEditMode ? getRedirectPath(loadedNote?.status ?? NOTE_STATUS.draft) : returnTo)
+        }
       />
-      {isEditMode ? (
-        <div className="button-row">
-          {!isConfirmingDelete ? (
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => setIsConfirmingDelete(true)}
-              disabled={isSubmitting}
-            >
-              Delete
-            </button>
-          ) : (
-            <>
-              <button type="button" onClick={() => void handleDelete()} disabled={isSubmitting}>
-                Confirm Delete
-              </button>
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => setIsConfirmingDelete(false)}
-                disabled={isSubmitting}
-              >
-                Cancel Delete
-              </button>
-            </>
-          )}
-        </div>
-      ) : null}
     </SectionPanel>
   );
 }

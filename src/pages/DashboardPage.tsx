@@ -41,7 +41,7 @@ export default function DashboardPage() {
           <Link to={ROUTES.notesPublished} className="secondary-button">
             View published
           </Link>
-          <Link to={ROUTES.notesNew} className="secondary-button">
+          <Link to={ROUTES.notesNew} state={{ returnTo: ROUTES.notesDrafts }} className="secondary-button">
             Create note
           </Link>
         </div>

@@ -160,6 +160,34 @@ describe("notes service data layer", () => {
     );
   });
 
+  it("allows partial private draft notes when at least one field has content", async () => {
+    addDocMock.mockResolvedValue({ id: "partial-draft-123" });
+
+    await expect(
+      createNote(
+        {
+          uid: "member-1",
+          email: "member@example.com",
+        } as never,
+        {
+          title: "My note",
+          body: "   ",
+          status: "draft",
+          visibility: "private",
+        }
+      )
+    ).resolves.toBe("partial-draft-123");
+
+    expect(addDocMock).toHaveBeenCalledWith(
+      { path: "notes" },
+      expect.objectContaining({
+        title: "My note",
+        body: "",
+        status: "draft",
+      })
+    );
+  });
+
   it("updates the note fields and status", async () => {
     await updateNote(" note-123 ", {
       title: " Updated title ",
@@ -179,6 +207,60 @@ describe("notes service data layer", () => {
         publishedAt: null,
       }
     );
+  });
+
+  it("allows updating a draft note when only one field has content", async () => {
+    await expect(
+      updateNote("note-123", {
+        title: "   ",
+        body: "Updated draft body",
+        status: "draft",
+        visibility: "private",
+      })
+    ).resolves.toBeUndefined();
+
+    expect(updateDocMock).toHaveBeenCalledWith(
+      { path: "notes/note-123" },
+      expect.objectContaining({
+        title: "",
+        body: "Updated draft body",
+        status: "draft",
+      })
+    );
+  });
+
+  it("rejects empty draft notes", async () => {
+    await expect(
+      createNote(
+        {
+          uid: "member-1",
+          email: "member@example.com",
+        } as never,
+        {
+          title: "   ",
+          body: "   ",
+          status: "draft",
+          visibility: "private",
+        }
+      )
+    ).rejects.toThrow("Enter a note title or details before saving.");
+  });
+
+  it("still requires complete content for published notes", async () => {
+    await expect(
+      createNote(
+        {
+          uid: "member-1",
+          email: "member@example.com",
+        } as never,
+        {
+          title: "Published title",
+          body: "   ",
+          status: "published",
+          visibility: "private",
+        }
+      )
+    ).rejects.toThrow("Enter the note details before saving.");
   });
 
   it("requires a note id before updating", async () => {
