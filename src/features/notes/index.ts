@@ -1,3 +1,4 @@
+export * from "./service";
 export * from "./notesService";
 export * from "./mappers";
 export * from "./migration";

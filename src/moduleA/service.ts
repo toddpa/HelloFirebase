@@ -1,7 +1,7 @@
 import type { User } from "firebase/auth";
 import {
   createPrivateNote,
-  listPrivateNotes,
+  listPrivateUserNotes,
   toPrivateNotesErrorMessage,
   toPrivateNoteWriteErrorMessage,
   type PrivateNoteFormState,
@@ -20,7 +20,7 @@ function toPrivateNoteFormState(formState: ModuleAFormState): PrivateNoteFormSta
 }
 
 export async function listModuleAItems(user: User): Promise<ModuleAItem[]> {
-  const notes = await listPrivateNotes(user);
+  const notes = await listPrivateUserNotes(user);
   return notes.map(toModuleAItem);
 }
 
