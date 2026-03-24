@@ -29,7 +29,9 @@ describe("note migration helpers", () => {
           updatedAt: createdAt,
           published: true,
         },
-        "dashboard-note-1"
+        "dashboard-note-1",
+        "fallback-author",
+        "fallback@example.com"
       )
     ).toEqual({
       title: "Weekly update",
@@ -41,6 +43,26 @@ describe("note migration helpers", () => {
       createdAt,
       updatedAt: createdAt,
       publishedAt: createdAt,
+    });
+  });
+
+  it("uses fallback author data when a legacy dashboard note has no author fields", () => {
+    expect(
+      migrateLegacyDashboardNote(
+        {
+          title: "Untitled legacy dashboard note",
+          body: "Needs an assigned author.",
+          published: false,
+        },
+        "dashboard-note-2",
+        "assigned-author",
+        "assigned@example.com"
+      )
+    ).toMatchObject({
+      status: "draft",
+      visibility: "shared",
+      authorId: "assigned-author",
+      authorEmail: "assigned@example.com",
     });
   });
 

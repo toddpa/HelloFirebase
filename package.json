@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview",
+    "notes:migrate": "node ./scripts/migrate-legacy-notes.mjs",
     "test": "vitest run --exclude src/access/firestore.rules.test.ts",
     "test:rules": "firebase emulators:exec --only firestore \"./node_modules/.bin/vitest run --environment node src/access/firestore.rules.test.ts\"",
     "test:watch": "vitest"
