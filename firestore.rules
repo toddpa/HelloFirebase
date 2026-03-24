@@ -84,7 +84,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    function hasValidNoteCreatePayload() {
+    function hasValidNoteWritePayload() {
       return request.resource.data.title is string
         && request.resource.data.title.size() > 0
         && request.resource.data.body is string
@@ -124,14 +124,18 @@ service cloud.firestore {
           && resource.data.authorId == request.auth.uid)
         || (isSharedNote() && (isAdmin() || (isApproved() && isPublishedNote())));
       allow create: if hasSubscriberAccess()
-        && hasValidNoteCreatePayload()
+        && hasValidNoteWritePayload()
         && (
           (request.resource.data.visibility == "private"
             && request.resource.data.authorId == request.auth.uid
             && request.resource.data.status == "draft")
           || (request.resource.data.visibility == "shared" && isAdmin())
         );
-      allow update, delete: if false;
+      allow update: if isAdmin()
+        && isSharedNote()
+        && request.resource.data.visibility == "shared"
+        && hasValidNoteWritePayload();
+      allow delete: if isAdmin() && isSharedNote();
     }
 
     match /{document=**} {

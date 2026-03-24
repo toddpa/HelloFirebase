@@ -346,7 +346,7 @@ describe("Firestore access control rules", () => {
     );
   });
 
-  it("blocks note updates and deletes for admins and approved users", async () => {
+  it("lets admins update and delete shared notes, while approved users still cannot modify them", async () => {
     await seedAsAdmin({
       adminUsers: [
         {
@@ -390,13 +390,13 @@ describe("Firestore access control rules", () => {
     const adminDb = authedContext("admin@example.com", "admin-uid").firestore();
     const memberDb = authedContext("member@example.com", "member-uid").firestore();
 
-    await assertFails(
+    await assertSucceeds(
       updateDoc(doc(adminDb, "notes", "published-note"), {
         body: "Updated body",
         updatedAt: serverTimestamp(),
       })
     );
-    await assertFails(deleteDoc(doc(adminDb, "notes", "published-note")));
+    await assertSucceeds(deleteDoc(doc(adminDb, "notes", "published-note")));
     await assertFails(
       updateDoc(doc(memberDb, "notes", "published-note"), {
         body: "Member edit attempt",
