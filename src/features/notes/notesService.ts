@@ -13,14 +13,15 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import {
+  NOTE_STATUS,
+  NOTE_VISIBILITY,
   NOTES_COLLECTION,
-  type AppNote,
   type CreateNoteInput,
   type DashboardNote,
   type DashboardNoteFormState,
   type GetDashboardNotesOptions,
   type ListNotesOptions,
-  type PrivateNote,
+  type NoteRecord,
   type PrivateNoteFormState,
 } from "./types";
 
@@ -53,14 +54,14 @@ function readTimestamp(value: unknown): Timestamp | null {
 }
 
 function readStatus(value: unknown) {
-  return value === "published" ? "published" : "draft";
+  return value === NOTE_STATUS.published ? NOTE_STATUS.published : NOTE_STATUS.draft;
 }
 
 function readVisibility(value: unknown) {
-  return value === "shared" ? "shared" : "private";
+  return value === NOTE_VISIBILITY.shared ? NOTE_VISIBILITY.shared : NOTE_VISIBILITY.private;
 }
 
-function toAppNote(documentSnapshot: QueryDocumentSnapshot<DocumentData>): AppNote {
+function toNoteRecord(documentSnapshot: QueryDocumentSnapshot<DocumentData>): NoteRecord {
   const data = documentSnapshot.data() as NoteDocument;
   const createdAt = readTimestamp(data.createdAt);
   const updatedAt = readTimestamp(data.updatedAt);
@@ -79,7 +80,7 @@ function toAppNote(documentSnapshot: QueryDocumentSnapshot<DocumentData>): AppNo
   };
 }
 
-function compareNotes(left: AppNote, right: AppNote) {
+function compareNotes(left: NoteRecord, right: NoteRecord) {
   if (left.createdAt && right.createdAt) {
     const createdAtDifference = right.createdAt.toMillis() - left.createdAt.toMillis();
 
@@ -185,9 +186,9 @@ export function toPrivateNoteWriteErrorMessage(error: unknown) {
   return "Unable to save your note right now.";
 }
 
-export async function listNotes(options: ListNotesOptions): Promise<AppNote[]> {
+export async function listNotes(options: ListNotesOptions): Promise<NoteRecord[]> {
   const snapshot = await getDocs(buildNotesQuery(options));
-  return snapshot.docs.map(toAppNote).sort(compareNotes);
+  return snapshot.docs.map(toNoteRecord).sort(compareNotes);
 }
 
 export async function createNote(user: User, input: CreateNoteInput) {
@@ -196,7 +197,7 @@ export async function createNote(user: User, input: CreateNoteInput) {
   const authorId = normalizeUserValue(user.uid);
   const authorEmail = normalizeUserValue(user.email);
   const publishedAt = toServerTimestampOrNull(
-    input.visibility === "shared" && input.status === "published"
+    input.visibility === NOTE_VISIBILITY.shared && input.status === NOTE_STATUS.published
   );
 
   if (!title) {
@@ -234,8 +235,8 @@ export async function getDashboardNotes(
   options: GetDashboardNotesOptions = {}
 ): Promise<DashboardNote[]> {
   return listNotes({
-    visibility: "shared",
-    status: options.includeUnpublished ? undefined : "published",
+    visibility: NOTE_VISIBILITY.shared,
+    status: options.includeUnpublished ? undefined : NOTE_STATUS.published,
   });
 }
 
@@ -248,13 +249,13 @@ export async function listRecentDashboardNotes(): Promise<DashboardNote[]> {
 }
 
 export async function createDashboardNote(user: User, formState: DashboardNoteFormState) {
-  const status = formState.published ? "published" : "draft";
+  const status = formState.published ? NOTE_STATUS.published : NOTE_STATUS.draft;
 
   try {
     return await createNote(user, {
       title: formState.title,
       body: formState.body,
-      visibility: "shared",
+      visibility: NOTE_VISIBILITY.shared,
       status,
     });
   } catch (error: unknown) {
@@ -262,7 +263,7 @@ export async function createDashboardNote(user: User, formState: DashboardNoteFo
   }
 }
 
-export async function listPrivateNotes(user: User): Promise<PrivateNote[]> {
+export async function listPrivateNotes(user: User): Promise<NoteRecord[]> {
   const authorId = normalizeUserValue(user.uid);
 
   if (!authorId) {
@@ -270,7 +271,7 @@ export async function listPrivateNotes(user: User): Promise<PrivateNote[]> {
   }
 
   return listNotes({
-    visibility: "private",
+    visibility: NOTE_VISIBILITY.private,
     authorId,
   });
 }
@@ -280,8 +281,8 @@ export async function createPrivateNote(user: User, formState: PrivateNoteFormSt
     return await createNote(user, {
       title: formState.title,
       body: formState.body,
-      visibility: "private",
-      status: "draft",
+      visibility: NOTE_VISIBILITY.private,
+      status: NOTE_STATUS.draft,
     });
   } catch (error: unknown) {
     throw new Error(toPrivateNoteWriteErrorMessage(error));

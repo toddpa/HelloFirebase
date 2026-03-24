@@ -1,5 +1,5 @@
-import type { PrivateNote, PrivateNoteFormState } from "../features/notes";
+import type { NoteRecord, PrivateNoteFormState } from "../features/notes";
 
-export type ModuleAItem = PrivateNote;
+export type ModuleAItem = NoteRecord;
 
 export type ModuleAFormState = PrivateNoteFormState;

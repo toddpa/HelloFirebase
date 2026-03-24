@@ -1,7 +1,7 @@
-import type { NoteDraft, NoteRecord } from "../../components/notes";
-import type { AppNote, DashboardNoteFormState, PrivateNoteFormState } from "./types";
+import type { NoteDraft, NoteRecord as UINoteRecord } from "../../components/notes";
+import type { DashboardNoteFormState, NoteRecord, PrivateNoteFormState } from "./types";
 
-function toUiUpdatedAtValue(note: AppNote) {
+function toUiUpdatedAtValue(note: NoteRecord) {
   if (!note.updatedAt || !note.createdAt) {
     return note.updatedAt;
   }
@@ -9,7 +9,7 @@ function toUiUpdatedAtValue(note: AppNote) {
   return note.updatedAt.toMillis() === note.createdAt.toMillis() ? null : note.updatedAt;
 }
 
-export function toNoteRecord(note: AppNote): NoteRecord {
+export function toNoteRecord(note: NoteRecord): UINoteRecord {
   return {
     id: note.id,
     title: note.title,

@@ -2,13 +2,23 @@ import type { Timestamp } from "firebase/firestore";
 
 export const NOTES_COLLECTION = "notes";
 
-export const NOTE_STATUSES = ["draft", "published"] as const;
-export const NOTE_VISIBILITIES = ["private", "shared"] as const;
+export const NOTE_STATUS = {
+  draft: "draft",
+  published: "published",
+} as const;
+
+export const NOTE_VISIBILITY = {
+  private: "private",
+  shared: "shared",
+} as const;
+
+export const NOTE_STATUSES = [NOTE_STATUS.draft, NOTE_STATUS.published] as const;
+export const NOTE_VISIBILITIES = [NOTE_VISIBILITY.private, NOTE_VISIBILITY.shared] as const;
 
 export type NoteStatus = (typeof NOTE_STATUSES)[number];
 export type NoteVisibility = (typeof NOTE_VISIBILITIES)[number];
 
-export type AppNote = {
+export type NoteRecord = {
   id: string;
   title: string;
   body: string;
@@ -34,7 +44,8 @@ export type ListNotesOptions = {
   authorId?: string;
 };
 
-export type DashboardNote = AppNote;
+/** @deprecated Use NoteRecord. */
+export type DashboardNote = NoteRecord;
 
 export type DashboardNoteFormState = {
   title: string;
@@ -46,7 +57,8 @@ export type GetDashboardNotesOptions = {
   includeUnpublished?: boolean;
 };
 
-export type PrivateNote = AppNote;
+/** @deprecated Use NoteRecord. */
+export type PrivateNote = NoteRecord;
 
 export type PrivateNoteFormState = {
   title: string;
@@ -80,4 +92,4 @@ export type LegacyPrivateNoteDocument = {
   createdByEmail?: unknown;
 };
 
-export type MigratedNoteSeed = Omit<AppNote, "id">;
+export type MigratedNoteSeed = Omit<NoteRecord, "id">;
