@@ -3,6 +3,10 @@ import type { AccessState } from "./types";
 export const ROUTES = {
   home: "/",
   dashboard: "/dashboard",
+  notes: "/notes",
+  notesDrafts: "/notes/drafts",
+  notesPublished: "/notes/published",
+  notesNew: "/notes/new",
   admin: "/admin",
   adminNotes: "/admin-notes",
   moduleA: "/module-a",
@@ -36,20 +40,9 @@ export const DASHBOARD_ROUTE_CONFIG: DashboardRouteConfig[] = [
     allowedAccessStates: ["admin"],
   },
   {
-    to: ROUTES.adminNotes,
-    label: "Dashboard Notes",
-    allowedAccessStates: ["admin"],
-  },
-  {
-    to: ROUTES.moduleA,
-    label: "My Notes",
+    to: ROUTES.notesDrafts,
+    label: "Notes",
     allowedAccessStates: [...AUTHENTICATED_DASHBOARD_ACCESS_STATES],
-  },
-  {
-    to: ROUTES.moduleB,
-    label: "Module B",
-    allowedAccessStates: ["admin"],
-    showInNavigation: false,
   },
 ];
 

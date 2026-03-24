@@ -6,12 +6,12 @@ import {
   ROUTES,
 } from "../access/routes";
 import DashboardLayout from "../layouts/DashboardLayout";
+import NotesLayout from "../layouts/NotesLayout";
 import AdminPage from "../pages/AdminPage";
-import AdminNotesPage from "../pages/AdminNotesPage";
 import DashboardPage from "../pages/DashboardPage";
 import DeniedPage from "../pages/DeniedPage";
-import ModuleAPage from "../pages/ModuleAPage";
-import ModuleBPage from "../pages/ModuleBPage";
+import NoteEditorPage from "../pages/NoteEditorPage";
+import NotesListPage from "../pages/NotesListPage";
 import PendingPage from "../pages/PendingPage";
 import RequestAccessPage from "../pages/RequestAccessPage";
 import HomeRoute from "./HomeRoute";
@@ -31,10 +31,8 @@ function LegacyRouteRedirect() {
 
 export default function AppRouter() {
   const dashboardRoute = getRouteConfig(ROUTES.dashboard);
+  const notesRoute = getRouteConfig(ROUTES.notesDrafts);
   const adminRoute = getRouteConfig(ROUTES.admin);
-  const adminNotesRoute = getRouteConfig(ROUTES.adminNotes);
-  const moduleARoute = getRouteConfig(ROUTES.moduleA);
-  const moduleBRoute = getRouteConfig(ROUTES.moduleB);
 
   return (
     <BrowserRouter>
@@ -60,6 +58,15 @@ export default function AppRouter() {
             >
               <Route path={ROUTES.dashboard} element={<DashboardPage />} />
             </Route>
+            <Route element={<ProtectedRoute allowedAccessStates={notesRoute?.allowedAccessStates ?? []} />}>
+              <Route path={ROUTES.notes} element={<NotesLayout />}>
+                <Route index element={<Navigate to={ROUTES.notesDrafts} replace />} />
+                <Route path="drafts" element={<NotesListPage />} />
+                <Route path="published" element={<NotesListPage />} />
+                <Route path="new" element={<NoteEditorPage />} />
+                <Route path=":noteId" element={<NoteEditorPage />} />
+              </Route>
+            </Route>
             <Route
               element={
                 <ProtectedRoute
@@ -70,31 +77,9 @@ export default function AppRouter() {
             >
               <Route path={ROUTES.admin} element={<AdminPage />} />
             </Route>
-            <Route
-              element={
-                <ProtectedRoute
-                  allowedAccessStates={adminNotesRoute?.allowedAccessStates ?? []}
-                  unauthorizedRedirectTo={ROUTES.dashboard}
-                />
-              }
-            >
-              <Route path={ROUTES.adminNotes} element={<AdminNotesPage />} />
-            </Route>
-            <Route
-              element={<ProtectedRoute allowedAccessStates={moduleARoute?.allowedAccessStates ?? []} />}
-            >
-              <Route path={ROUTES.moduleA} element={<ModuleAPage />} />
-            </Route>
-            <Route
-              element={
-                <ProtectedRoute
-                  allowedAccessStates={moduleBRoute?.allowedAccessStates ?? []}
-                  unauthorizedRedirectTo={ROUTES.dashboard}
-                />
-              }
-            >
-              <Route path={ROUTES.moduleB} element={<ModuleBPage />} />
-            </Route>
+            <Route path={ROUTES.adminNotes} element={<Navigate to={ROUTES.notesPublished} replace />} />
+            <Route path={ROUTES.moduleA} element={<Navigate to={ROUTES.notesDrafts} replace />} />
+            <Route path={ROUTES.moduleB} element={<Navigate to={ROUTES.notesPublished} replace />} />
           </Route>
         </Route>
 

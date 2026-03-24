@@ -1,9 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import type { Timestamp } from "firebase/firestore";
 import { vi } from "vitest";
 import App from "./App";
 import { useAuth } from "./auth/useAuth";
-import { listPublishedDashboardNotes } from "./features/notes/notesService";
 
 vi.mock("./auth/useAuth", () => ({
   useAuth: vi.fn(),
@@ -21,35 +19,22 @@ vi.mock("./access/service", () => ({
   submitAccessRequest: vi.fn(),
 }));
 
-vi.mock("./features/notes/notesService", async () => {
-  const actual = await vi.importActual<typeof import("./features/notes/notesService")>(
-    "./features/notes/notesService"
-  );
+vi.mock("./features/notes", async () => {
+  const actual = await vi.importActual<typeof import("./features/notes")>("./features/notes");
 
   return {
     ...actual,
-    listPublishedDashboardNotes: vi.fn().mockResolvedValue([]),
-    listRecentDashboardNotes: vi.fn().mockResolvedValue([]),
-    createDashboardNote: vi.fn(),
-    toDashboardNotesErrorMessage: vi.fn((error: unknown) =>
-      error instanceof Error ? error.message : "Unable to load dashboard notes right now."
-    ),
+    listNotes: vi.fn().mockResolvedValue([]),
+    getNoteById: vi.fn(),
+    createNote: vi.fn(),
+    updateNote: vi.fn(),
+    deleteNote: vi.fn(),
   };
 });
-
-function createTimestamp(isoString: string) {
-  const date = new Date(isoString);
-
-  return {
-    toDate: () => date,
-    toMillis: () => date.getTime(),
-  } as Timestamp;
-}
 
 describe("App", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
-    vi.mocked(listPublishedDashboardNotes).mockResolvedValue([]);
   });
 
   it("renders the loading state", () => {
@@ -96,20 +81,6 @@ describe("App", () => {
 
   it("renders the approved subscriber state", async () => {
     window.history.replaceState({}, "", "/dashboard");
-    vi.mocked(listPublishedDashboardNotes).mockResolvedValue([
-      {
-        id: "dashboard-note-1",
-        title: "Shared dashboard update",
-        body: "Visible to approved users.",
-        status: "published",
-        visibility: "shared",
-        createdAt: createTimestamp("2026-03-20T10:00:00.000Z"),
-        authorId: "admin-1",
-        authorEmail: "admin@example.com",
-        updatedAt: null,
-        publishedAt: createTimestamp("2026-03-20T10:00:00.000Z"),
-      },
-    ]);
     vi.mocked(useAuth).mockReturnValue({
       user: {
         uid: "123",
@@ -134,10 +105,10 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Signed-in summary" })).toBeInTheDocument();
     expect(screen.getByRole("complementary", { name: "Dashboard navigation" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "My Notes" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Module B" })).not.toBeInTheDocument();
-    expect(await screen.findByText("Shared dashboard update")).toBeInTheDocument();
-    expect(screen.queryByText("Posted by admin@example.com")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Notes" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Dashboard Notes" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Notes workspace" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Notes" })).toHaveAttribute("href", "/notes/drafts");
   });
 
   it("renders the request access state for unknown users", () => {
@@ -247,9 +218,8 @@ describe("App", () => {
     expect(screen.getAllByText("Administrator").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Access Control" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Dashboard Notes" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "My Notes" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Module B" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Notes" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Dashboard Notes" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Signed-in summary" })).toBeInTheDocument();
   });
 
@@ -277,7 +247,7 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: "Access management" })).toBeInTheDocument();
   });
 
-  it("allows admin users to open the dashboard notes page", async () => {
+  it("redirects the legacy dashboard notes page into published notes", async () => {
     window.history.replaceState({}, "", "/admin-notes");
 
     vi.mocked(useAuth).mockReturnValue({
@@ -298,10 +268,14 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "Dashboard notes" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(window.location.pathname).toBe("/notes/published");
+    });
+
+    expect(await screen.findByRole("heading", { name: "Published notes" })).toBeInTheDocument();
   });
 
-  it("redirects approved users away from module-b with a readable message", async () => {
+  it("redirects legacy module-b into published notes", async () => {
     window.history.replaceState({}, "", "/module-b");
 
     vi.mocked(useAuth).mockReturnValue({
@@ -323,16 +297,12 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe("/dashboard");
+      expect(window.location.pathname).toBe("/notes/published");
     });
-
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "You do not have access to Module B. Showing the dashboard instead."
-    );
-    expect(screen.queryByRole("link", { name: "Module B" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Published notes" })).toBeInTheDocument();
   });
 
-  it("allows admin users to open module-b directly", () => {
+  it("redirects admins from module-b into published notes", async () => {
     window.history.replaceState({}, "", "/module-b");
 
     vi.mocked(useAuth).mockReturnValue({
@@ -353,8 +323,11 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(window.location.pathname).toBe("/admin-notes");
-    expect(screen.getByRole("heading", { name: "Dashboard notes" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(window.location.pathname).toBe("/notes/published");
+    });
+
+    expect(await screen.findByRole("heading", { name: "Published notes" })).toBeInTheDocument();
   });
 
   it("replaces the URL with the allowed route for approved users", async () => {

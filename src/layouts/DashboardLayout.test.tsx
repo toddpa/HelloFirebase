@@ -101,7 +101,7 @@ describe("DashboardLayout", () => {
     });
 
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "My Notes" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Notes" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Access Control" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Dashboard Notes" })).not.toBeInTheDocument();
   });
@@ -130,7 +130,8 @@ describe("DashboardLayout", () => {
     });
 
     expect(screen.getByRole("link", { name: "Access Control" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Dashboard Notes" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Notes" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Dashboard Notes" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Module B" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));

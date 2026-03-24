@@ -84,22 +84,50 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    function hasValidNoteWritePayload() {
-      return request.resource.data.title is string
-        && request.resource.data.title.size() > 0
-        && request.resource.data.body is string
-        && request.resource.data.body.size() > 0
-        && request.resource.data.status in ["draft", "published"]
-        && request.resource.data.visibility in ["private", "shared"]
+    function hasValidNoteContent(data) {
+      return data.title is string
+        && data.title.size() > 0
+        && data.body is string
+        && data.body.size() > 0
+        && data.status in ["draft", "published"]
+        && data.visibility in ["private", "shared"]
+        && (
+          !("publishedAt" in data)
+          || data.publishedAt == null
+          || data.publishedAt is timestamp
+        );
+    }
+
+    function hasValidNoteCreatePayload() {
+      return hasValidNoteContent(request.resource.data)
         && request.resource.data.createdAt is timestamp
         && request.resource.data.updatedAt is timestamp
         && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.authorEmail == request.auth.token.email;
+    }
+
+    function hasValidPrivateNoteUpdatePayload() {
+      return hasValidNoteContent(request.resource.data)
+        && resource.data.visibility == "private"
+        && request.resource.data.visibility == "private"
+        && request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.authorEmail == resource.data.authorEmail
+        && request.resource.data.authorId == request.auth.uid
         && request.resource.data.authorEmail == request.auth.token.email
-        && (
-          !("publishedAt" in request.resource.data)
-          || request.resource.data.publishedAt == null
-          || request.resource.data.publishedAt is timestamp
-        );
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function hasValidSharedNoteUpdatePayload() {
+      return hasValidNoteContent(request.resource.data)
+        && resource.data.visibility == "shared"
+        && request.resource.data.visibility == "shared"
+        && request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.authorEmail == resource.data.authorEmail
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.authorEmail == request.auth.token.email
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt is timestamp;
     }
 
     function isPrivateNote() {
@@ -124,18 +152,24 @@ service cloud.firestore {
           && resource.data.authorId == request.auth.uid)
         || (isSharedNote() && (isAdmin() || (isApproved() && isPublishedNote())));
       allow create: if hasSubscriberAccess()
-        && hasValidNoteWritePayload()
+        && hasValidNoteCreatePayload()
         && (
           (request.resource.data.visibility == "private"
             && request.resource.data.authorId == request.auth.uid
-            && request.resource.data.status == "draft")
+            && request.resource.data.authorEmail == request.auth.token.email)
           || (request.resource.data.visibility == "shared" && isAdmin())
         );
-      allow update: if isAdmin()
-        && isSharedNote()
-        && request.resource.data.visibility == "shared"
-        && hasValidNoteWritePayload();
-      allow delete: if isAdmin() && isSharedNote();
+      allow update: if (hasSubscriberAccess()
+          && isPrivateNote()
+          && resource.data.authorId == request.auth.uid
+          && hasValidPrivateNoteUpdatePayload())
+        || (isAdmin()
+          && isSharedNote()
+          && hasValidSharedNoteUpdatePayload());
+      allow delete: if (hasSubscriberAccess()
+          && isPrivateNote()
+          && resource.data.authorId == request.auth.uid)
+        || (isAdmin() && isSharedNote());
     }
 
     match /{document=**} {

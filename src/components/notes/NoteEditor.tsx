@@ -27,6 +27,7 @@ type NoteEditorProps = {
   bodyFieldId: string;
   publishedFieldId?: string;
   onSubmit: (draft: NoteDraft) => Promise<void> | void;
+  onSecondarySubmit?: (draft: NoteDraft) => Promise<void> | void;
   onCancel?: () => void;
 };
 
@@ -51,6 +52,7 @@ export default function NoteEditor({
   bodyFieldId,
   publishedFieldId,
   onSubmit,
+  onSecondarySubmit,
   onCancel,
 }: NoteEditorProps) {
   const [draft, setDraft] = useState<Required<NoteDraft>>(() => normalizeDraft(initialValue));
@@ -62,8 +64,12 @@ export default function NoteEditor({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    await handleSubmission(onSubmit);
+  }
+
+  async function handleSubmission(submitHandler: (draft: NoteDraft) => Promise<void> | void) {
     try {
-      await onSubmit(draft);
+      await submitHandler(draft);
     } catch {
       return;
     }
@@ -76,6 +82,7 @@ export default function NoteEditor({
   const createSubmitLabel = labels?.createSubmitLabel ?? "Create note";
   const unpublishedSubmitLabel = labels?.unpublishedSubmitLabel ?? createSubmitLabel;
   const editSubmitLabel = labels?.editSubmitLabel ?? "Save changes";
+  const secondarySubmitLabel = labels?.secondarySubmitLabel ?? "Save draft";
   const savingLabel = labels?.savingLabel ?? "Saving...";
   const submitLabel =
     mode === "edit" ? editSubmitLabel : showPublishedToggle && !draft.published ? unpublishedSubmitLabel : createSubmitLabel;
@@ -142,6 +149,16 @@ export default function NoteEditor({
         <button type="submit" disabled={isSubmitting}>
           {isSubmitting ? savingLabel : submitLabel}
         </button>
+        {onSecondarySubmit ? (
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void handleSubmission(onSecondarySubmit)}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? savingLabel : secondarySubmitLabel}
+          </button>
+        ) : null}
         {mode === "edit" && onCancel ? (
           <button type="button" className="secondary-button" onClick={onCancel} disabled={isSubmitting}>
             {labels?.cancelLabel ?? "Cancel"}

@@ -25,28 +25,28 @@ vi.mock("../layouts/DashboardLayout", () => ({
   default: () => <Outlet />,
 }));
 
-vi.mock("../pages/AdminPage", () => ({
-  default: () => <div>Admin page route</div>,
+vi.mock("../layouts/NotesLayout", () => ({
+  default: () => <Outlet />,
 }));
 
-vi.mock("../pages/AdminNotesPage", () => ({
-  default: () => <div>Admin notes route</div>,
+vi.mock("../pages/AdminPage", () => ({
+  default: () => <div>Admin page route</div>,
 }));
 
 vi.mock("../pages/DashboardPage", () => ({
   default: () => <div>Dashboard page route</div>,
 }));
 
+vi.mock("../pages/NoteEditorPage", () => ({
+  default: () => <div>Note editor route</div>,
+}));
+
 vi.mock("../pages/DeniedPage", () => ({
   default: () => <div>Denied page route</div>,
 }));
 
-vi.mock("../pages/ModuleAPage", () => ({
-  default: () => <div>Module A route</div>,
-}));
-
-vi.mock("../pages/ModuleBPage", () => ({
-  default: () => <div>Module B route</div>,
+vi.mock("../pages/NotesListPage", () => ({
+  default: () => <div>Notes drafts route</div>,
 }));
 
 vi.mock("../pages/PendingPage", () => ({
@@ -89,5 +89,47 @@ describe("AppRouter", () => {
     renderRouterAt("/not-a-real-route");
 
     expect(screen.getByText("Dashboard page route")).toBeInTheDocument();
+  });
+
+  it("redirects /notes to the drafts route", () => {
+    renderRouterAt("/notes");
+
+    expect(screen.getByText("Notes drafts route")).toBeInTheDocument();
+  });
+
+  it("renders the published notes route", () => {
+    renderRouterAt("/notes/published");
+
+    expect(screen.getByText("Notes drafts route")).toBeInTheDocument();
+  });
+
+  it("renders the new note route", () => {
+    renderRouterAt("/notes/new");
+
+    expect(screen.getByText("Note editor route")).toBeInTheDocument();
+  });
+
+  it("renders the note details route", () => {
+    renderRouterAt("/notes/note-123");
+
+    expect(screen.getByText("Note editor route")).toBeInTheDocument();
+  });
+
+  it("redirects the legacy admin notes route into published notes", () => {
+    renderRouterAt("/admin-notes");
+
+    expect(screen.getByText("Notes drafts route")).toBeInTheDocument();
+  });
+
+  it("redirects the legacy module-a route into draft notes", () => {
+    renderRouterAt("/module-a");
+
+    expect(screen.getByText("Notes drafts route")).toBeInTheDocument();
+  });
+
+  it("redirects the legacy module-b route into published notes", () => {
+    renderRouterAt("/module-b");
+
+    expect(screen.getByText("Notes drafts route")).toBeInTheDocument();
   });
 });

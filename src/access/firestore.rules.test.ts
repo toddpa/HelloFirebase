@@ -346,6 +346,93 @@ describe("Firestore access control rules", () => {
     );
   });
 
+  it("lets approved users update and delete their own private notes across draft and published states", async () => {
+    await seedAsAdmin({
+      allowedEmails: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "member@example.com",
+            normalizedEmail: "member@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+        {
+          id: "other@example.com",
+          value: {
+            email: "other@example.com",
+            normalizedEmail: "other@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+      ],
+      notes: [
+        {
+          id: "member-note",
+          value: {
+            title: "Member draft",
+            body: "Visible only to the owner.",
+            status: "draft",
+            visibility: "private",
+            authorId: "member-uid",
+            authorEmail: "member@example.com",
+            createdAt: new Date("2026-03-17T01:00:00.000Z"),
+            updatedAt: new Date("2026-03-17T01:00:00.000Z"),
+            publishedAt: null,
+          },
+        },
+      ],
+    });
+
+    const memberDb = authedContext("member@example.com", "member-uid").firestore();
+    const otherDb = authedContext("other@example.com", "other-uid").firestore();
+
+    await assertSucceeds(
+      updateDoc(doc(memberDb, "notes", "member-note"), {
+        title: "Member published",
+        body: "Now published privately.",
+        status: "published",
+        visibility: "private",
+        authorId: "member-uid",
+        authorEmail: "member@example.com",
+        createdAt: new Date("2026-03-17T01:00:00.000Z"),
+        updatedAt: serverTimestamp(),
+        publishedAt: serverTimestamp(),
+      })
+    );
+
+    await assertSucceeds(
+      updateDoc(doc(memberDb, "notes", "member-note"), {
+        title: "Member draft again",
+        body: "Moved back to draft.",
+        status: "draft",
+        visibility: "private",
+        authorId: "member-uid",
+        authorEmail: "member@example.com",
+        createdAt: new Date("2026-03-17T01:00:00.000Z"),
+        updatedAt: serverTimestamp(),
+        publishedAt: null,
+      })
+    );
+
+    await assertFails(
+      updateDoc(doc(otherDb, "notes", "member-note"), {
+        title: "Hijacked note",
+        body: "This should fail.",
+        status: "published",
+        visibility: "private",
+        authorId: "other-uid",
+        authorEmail: "other@example.com",
+        createdAt: new Date("2026-03-17T01:00:00.000Z"),
+        updatedAt: serverTimestamp(),
+        publishedAt: serverTimestamp(),
+      })
+    );
+
+    await assertSucceeds(deleteDoc(doc(memberDb, "notes", "member-note")));
+    await assertFails(deleteDoc(doc(otherDb, "notes", "member-note")));
+  });
+
   it("lets admins update and delete shared notes, while approved users still cannot modify them", async () => {
     await seedAsAdmin({
       adminUsers: [
@@ -827,12 +914,73 @@ describe("Firestore access control rules", () => {
     await assertFails(
       setDoc(doc(memberDb, "notes", "also-bad-note"), {
         title: "Another bad note",
-        body: "private notes must stay drafts.",
+        body: "private notes can publish now, but this create payload is still invalid.",
+        status: "published",
+        visibility: "private",
+        authorId: "member-uid",
+        authorEmail: "other@example.com",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        publishedAt: serverTimestamp(),
+      })
+    );
+  });
+
+  it("enforces payload validation for approved users updating private notes", async () => {
+    await seedAsAdmin({
+      allowedEmails: [
+        {
+          id: "member@example.com",
+          value: {
+            email: "member@example.com",
+            normalizedEmail: "member@example.com",
+            createdBy: "admin-uid",
+          },
+        },
+      ],
+      notes: [
+        {
+          id: "member-note",
+          value: {
+            title: "Member note",
+            body: "Visible only to the owner.",
+            status: "draft",
+            visibility: "private",
+            authorId: "member-uid",
+            authorEmail: "member@example.com",
+            createdAt: new Date("2026-03-17T01:00:00.000Z"),
+            updatedAt: new Date("2026-03-17T01:00:00.000Z"),
+            publishedAt: null,
+          },
+        },
+      ],
+    });
+
+    const memberDb = authedContext("member@example.com", "member-uid").firestore();
+
+    await assertFails(
+      updateDoc(doc(memberDb, "notes", "member-note"), {
+        title: "Forged note",
+        body: "Changed ownership should fail.",
+        status: "draft",
+        visibility: "private",
+        authorId: "other-uid",
+        authorEmail: "member@example.com",
+        createdAt: new Date("2026-03-17T01:00:00.000Z"),
+        updatedAt: serverTimestamp(),
+        publishedAt: null,
+      })
+    );
+
+    await assertFails(
+      updateDoc(doc(memberDb, "notes", "member-note"), {
+        title: "Changed creation date",
+        body: "Tampering with createdAt should fail.",
         status: "published",
         visibility: "private",
         authorId: "member-uid",
         authorEmail: "member@example.com",
-        createdAt: serverTimestamp(),
+        createdAt: new Date("2026-03-18T01:00:00.000Z"),
         updatedAt: serverTimestamp(),
         publishedAt: serverTimestamp(),
       })

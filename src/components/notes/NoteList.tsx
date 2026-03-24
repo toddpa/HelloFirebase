@@ -11,6 +11,7 @@ type NoteListProps = {
   ariaLabel: string;
   displayOptions?: NoteDisplayOptions;
   renderActions?: (note: NoteRecord) => ReactNode;
+  itemTo?: (note: NoteRecord) => string;
 };
 
 export default function NoteList({
@@ -20,6 +21,7 @@ export default function NoteList({
   ariaLabel,
   displayOptions,
   renderActions,
+  itemTo,
 }: NoteListProps) {
   if (notes.length === 0) {
     return <EmptyState title={emptyTitle} message={emptyMessage} />;
@@ -33,6 +35,7 @@ export default function NoteList({
           note={note}
           displayOptions={displayOptions}
           actions={renderActions ? renderActions(note) : null}
+          to={itemTo ? itemTo(note) : undefined}
         />
       ))}
     </div>

@@ -1,24 +1,12 @@
-import { useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
-import { NoteList } from "../components/notes";
-import { FeedbackMessage, SectionPanel } from "../components/ui";
-import { useDashboardNotes } from "../features/notes";
+import { ROUTES } from "../access/routes";
+import { SectionPanel } from "../components/ui";
 import styles from "./DashboardPage.module.css";
 
 export default function DashboardPage() {
   const { accessState, user } = useAuth();
-  const { notes, loading, errorMessage, refresh } = useDashboardNotes();
-
   const roleLabel = accessState === "admin" ? "Administrator" : "Approved user";
-  const isAdmin = accessState === "admin";
-
-  useEffect(() => {
-    if (accessState !== "approved" && accessState !== "admin") {
-      return;
-    }
-
-    void refresh();
-  }, [accessState, refresh]);
 
   return (
     <div className={styles.homeGrid}>
@@ -36,29 +24,27 @@ export default function DashboardPage() {
       </section>
 
       <SectionPanel
-        title="Notes"
+        title="Notes workspace"
         action={
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => void refresh()}
-            disabled={loading}
-          >
-            Refresh
-          </button>
+          <Link to={ROUTES.notesDrafts} className="secondary-button">
+            Open Notes
+          </Link>
         }
       >
-        <FeedbackMessage kind="error" message={errorMessage} />
-        {loading ? <p>Loading dashboard notes...</p> : null}
-
-        {!loading && !errorMessage ? (
-          <NoteList
-            notes={notes}
-            ariaLabel="Dashboard notes"
-            emptyTitle="No notes available yet."
-            displayOptions={{ showAuthorEmail: isAdmin }}
-          />
-        ) : null}
+        <p className="muted-copy">
+          Create, edit, publish, and manage notes from the dedicated workspace.
+        </p>
+        <div className="button-row">
+          <Link to={ROUTES.notesDrafts} className="secondary-button">
+            View drafts
+          </Link>
+          <Link to={ROUTES.notesPublished} className="secondary-button">
+            View published
+          </Link>
+          <Link to={ROUTES.notesNew} className="secondary-button">
+            Create note
+          </Link>
+        </div>
       </SectionPanel>
     </div>
   );

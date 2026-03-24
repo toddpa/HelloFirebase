@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   compareNoteRecords,
   createNote,
+  deleteNote,
   getNoteById,
   listPrivateNotes,
   listSharedPublishedNotes,
   toNoteSnapshotRecord,
+  updateNote,
 } from "./service";
 import { createDashboardNote, listPublishedDashboardNotes } from "./notesService";
 import { useDashboardNotes } from "./useDashboardNotes";
@@ -14,17 +16,20 @@ import { useDashboardNotes } from "./useDashboardNotes";
 const {
   addDocMock,
   collectionMock,
+  deleteDocMock,
   docMock,
   getDocMock,
   getDocsMock,
   queryMock,
   serverTimestampMock,
+  updateDocMock,
   whereMock,
 } = vi.hoisted(() => ({
   addDocMock: vi.fn(),
   collectionMock: vi.fn((...segments: unknown[]) => ({
     path: segments.slice(1).join("/"),
   })),
+  deleteDocMock: vi.fn(),
   docMock: vi.fn((...segments: unknown[]) => ({
     path: segments.slice(1).join("/"),
   })),
@@ -35,6 +40,7 @@ const {
     constraints,
   })),
   serverTimestampMock: vi.fn(() => "server-timestamp"),
+  updateDocMock: vi.fn(),
   whereMock: vi.fn((field: string, operator: string, value: unknown) => ({
     field,
     operator,
@@ -45,11 +51,13 @@ const {
 vi.mock("firebase/firestore", () => ({
   addDoc: addDocMock,
   collection: collectionMock,
+  deleteDoc: deleteDocMock,
   doc: docMock,
   getDoc: getDocMock,
   getDocs: getDocsMock,
   query: queryMock,
   serverTimestamp: serverTimestampMock,
+  updateDoc: updateDocMock,
   where: whereMock,
 }));
 
@@ -150,6 +158,48 @@ describe("notes service data layer", () => {
         publishedAt: null,
       })
     );
+  });
+
+  it("updates the note fields and status", async () => {
+    await updateNote(" note-123 ", {
+      title: " Updated title ",
+      body: " Updated body ",
+      status: "published",
+      visibility: "private",
+    });
+
+    expect(updateDocMock).toHaveBeenCalledWith(
+      { path: "notes/note-123" },
+      {
+        title: "Updated title",
+        body: "Updated body",
+        status: "published",
+        visibility: "private",
+        updatedAt: "server-timestamp",
+        publishedAt: null,
+      }
+    );
+  });
+
+  it("requires a note id before updating", async () => {
+    await expect(
+      updateNote("   ", {
+        title: "Updated title",
+        body: "Updated body",
+        status: "draft",
+        visibility: "private",
+      })
+    ).rejects.toThrow("A note id is required before saving changes.");
+  });
+
+  it("deletes a note by id", async () => {
+    await deleteNote(" note-123 ");
+
+    expect(deleteDocMock).toHaveBeenCalledWith({ path: "notes/note-123" });
+  });
+
+  it("requires a note id before deleting", async () => {
+    await expect(deleteNote("   ")).rejects.toThrow("A note id is required before deleting.");
   });
 
   it("returns null when a note document does not exist", async () => {

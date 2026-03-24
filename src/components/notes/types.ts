@@ -25,6 +25,7 @@ export type NoteEditorLabels = {
   createSubmitLabel?: string;
   unpublishedSubmitLabel?: string;
   editSubmitLabel?: string;
+  secondarySubmitLabel?: string;
   savingLabel?: string;
   cancelLabel?: string;
 };
@@ -35,6 +36,7 @@ export type NoteEditorPlaceholders = {
 };
 
 export type NoteDisplayOptions = {
+  showCreatedAt?: boolean;
   showAuthorEmail?: boolean;
   showPublicationStatus?: boolean;
   showUpdatedAt?: boolean;

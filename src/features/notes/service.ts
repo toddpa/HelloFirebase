@@ -2,11 +2,13 @@ import type { User } from "firebase/auth";
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
   query,
   serverTimestamp,
+  updateDoc,
   where,
   type DocumentData,
   type QueryConstraint,
@@ -21,6 +23,7 @@ import {
   type CreateNoteInput,
   type ListNotesOptions,
   type NoteRecord,
+  type UpdateNoteInput,
 } from "./types";
 
 type NoteDocument = {
@@ -152,6 +155,46 @@ export async function createNote(user: User, input: CreateNoteInput) {
   });
 
   return documentReference.id;
+}
+
+export async function updateNote(noteId: string, input: UpdateNoteInput) {
+  const normalizedNoteId = normalizeUserValue(noteId);
+  const title = normalizeFormValue(input.title);
+  const body = normalizeFormValue(input.body);
+  const publishedAt = toServerTimestampOrNull(
+    input.visibility === NOTE_VISIBILITY.shared && input.status === NOTE_STATUS.published
+  );
+
+  if (!normalizedNoteId) {
+    throw new Error("A note id is required before saving changes.");
+  }
+
+  if (!title) {
+    throw new Error("Enter a note title before saving.");
+  }
+
+  if (!body) {
+    throw new Error("Enter the note details before saving.");
+  }
+
+  await updateDoc(doc(db, NOTES_COLLECTION, normalizedNoteId), {
+    title,
+    body,
+    status: input.status,
+    visibility: input.visibility,
+    updatedAt: serverTimestamp(),
+    publishedAt,
+  });
+}
+
+export async function deleteNote(noteId: string) {
+  const normalizedNoteId = normalizeUserValue(noteId);
+
+  if (!normalizedNoteId) {
+    throw new Error("A note id is required before deleting.");
+  }
+
+  await deleteDoc(doc(db, NOTES_COLLECTION, normalizedNoteId));
 }
 
 export async function getNoteById(noteId: string) {

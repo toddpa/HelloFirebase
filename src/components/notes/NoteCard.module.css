@@ -1,3 +1,8 @@
+.cardLink {
+  color: inherit;
+  text-decoration: none;
+}
+
 .card {
   flex-direction: column;
 }

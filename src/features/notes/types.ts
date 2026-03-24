@@ -38,6 +38,8 @@ export type CreateNoteInput = {
   visibility: NoteVisibility;
 };
 
+export type UpdateNoteInput = CreateNoteInput;
+
 export type ListNotesOptions = {
   status?: NoteStatus;
   visibility: NoteVisibility;
