@@ -95,10 +95,12 @@ describe("AdminNotesPage", () => {
           title: "Platform update",
           body: "Shared note copy.",
           createdAt: null,
-          createdByUid: "admin-1",
-          createdByEmail: "admin@example.com",
+          status: "published",
+          visibility: "shared",
+          authorId: "admin-1",
+          authorEmail: "admin@example.com",
           updatedAt: null,
-          published: true,
+          publishedAt: null,
         },
       ]);
     vi.mocked(createDashboardNote).mockResolvedValue("note-123");

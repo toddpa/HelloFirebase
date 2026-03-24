@@ -1,3 +1,5 @@
+import styles from "./EmptyState.module.css";
+
 type EmptyStateProps = {
   title: string;
   message?: string;
@@ -5,10 +7,9 @@ type EmptyStateProps = {
 
 export default function EmptyState({ title, message }: EmptyStateProps) {
   return (
-    <div className="empty-state">
-      <p className="empty-state-title">{title}</p>
+    <div className={styles.root}>
+      <p className={styles.title}>{title}</p>
       {message ? <p className="muted-copy">{message}</p> : null}
     </div>
   );
 }
-

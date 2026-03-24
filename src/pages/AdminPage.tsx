@@ -10,6 +10,8 @@ import {
 import type { AccessRequestRecord, AllowedEmailRecord } from "../access/types";
 import { isValidEmail, normalizeEmail } from "../access/helpers";
 import { useAuth } from "../auth/useAuth";
+import { EmptyState } from "../components/ui";
+import styles from "./AdminPage.module.css";
 
 function formatTimestamp(value?: Timestamp | null) {
   if (!value) {
@@ -179,7 +181,7 @@ export default function AdminPage() {
 
   return (
     <section className="panel">
-      <div className="section-heading">
+      <div className={styles.heading}>
         <div>
           <h2>Access management</h2>
         </div>
@@ -193,7 +195,7 @@ export default function AdminPage() {
         </button>
       </div>
 
-      <div className="section-heading admin-subsection">
+      <div className={styles.subsection}>
         <div>
           <h3>Approved subscriber emails</h3>
         </div>
@@ -232,15 +234,15 @@ export default function AdminPage() {
       {loading ? <p>Loading approved emails...</p> : null}
 
       {!loading && allowedEmails.length === 0 ? (
-        <div className="empty-state">
-          <p className="empty-state-title">No approved emails yet.</p>
-          <p className="muted-copy">Add the first subscriber email to start granting access.</p>
-        </div>
+        <EmptyState
+          title="No approved emails yet."
+          message="Add the first subscriber email to start granting access."
+        />
       ) : null}
 
       {!loading && allowedEmails.length > 0 ? (
-        <div className="admin-table-shell">
-          <table className="admin-table" aria-label="Approved subscriber emails">
+        <div className={styles.tableShell}>
+          <table className={styles.table} aria-label="Approved subscriber emails">
             <thead>
               <tr>
                 <th scope="col">Email</th>
@@ -257,7 +259,7 @@ export default function AdminPage() {
                   <td>{formatTimestamp(record.createdAt)}</td>
                   <td>
                     <select
-                      className="admin-action-select"
+                      className={styles.actionSelect}
                       aria-label={`Actions for ${record.email || record.normalizedEmail}`}
                       defaultValue=""
                       onChange={(event) => {
@@ -279,7 +281,7 @@ export default function AdminPage() {
         </div>
       ) : null}
 
-      <div className="section-heading admin-subsection">
+      <div className={styles.subsection}>
         <div>
           <h3>Pending access requests</h3>
         </div>
@@ -288,15 +290,15 @@ export default function AdminPage() {
       {loading ? <p>Loading pending requests...</p> : null}
 
       {!loading && pendingRequests.length === 0 ? (
-        <div className="empty-state">
-          <p className="empty-state-title">No pending access requests.</p>
-          <p className="muted-copy">New subscriber requests will appear here for review.</p>
-        </div>
+        <EmptyState
+          title="No pending access requests."
+          message="New subscriber requests will appear here for review."
+        />
       ) : null}
 
       {!loading && pendingRequests.length > 0 ? (
-        <div className="admin-table-shell">
-          <table className="admin-table" aria-label="Pending access requests">
+        <div className={styles.tableShell}>
+          <table className={styles.table} aria-label="Pending access requests">
             <thead>
               <tr>
                 <th scope="col">Email</th>
@@ -313,7 +315,7 @@ export default function AdminPage() {
                   <td>{formatTimestamp(requestRecord.requestedAt)}</td>
                   <td>
                     <select
-                      className="admin-action-select"
+                      className={styles.actionSelect}
                       aria-label={`Actions for ${requestRecord.email || requestRecord.normalizedEmail}`}
                       defaultValue=""
                       onChange={(event) => {

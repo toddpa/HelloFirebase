@@ -3,6 +3,7 @@ import { useAuth } from "../auth/useAuth";
 import { NoteEditor, NoteList, type NoteDraft } from "../components/notes";
 import { SectionPanel } from "../components/ui";
 import { useDashboardNotes } from "../features/notes";
+import styles from "./AdminNotesPage.module.css";
 
 export default function AdminNotesPage() {
   const { accessState, user } = useAuth();
@@ -40,7 +41,7 @@ export default function AdminNotesPage() {
         </button>
       }
     >
-      <div className="section-heading admin-subsection">
+      <div className={styles.subsection}>
         <div>
           <h3>Create note</h3>
         </div>
@@ -74,7 +75,7 @@ export default function AdminNotesPage() {
         }}
       />
 
-      <div className="section-heading admin-subsection">
+      <div className={styles.subsection}>
         <div>
           <h3>Recent notes</h3>
         </div>

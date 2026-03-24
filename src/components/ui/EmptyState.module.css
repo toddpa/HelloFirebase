@@ -1,0 +1,12 @@
+.root {
+  margin-top: var(--space-8);
+  padding: var(--space-8) var(--space-9);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-soft);
+  border: 1px dashed var(--color-border-dashed);
+}
+
+.title {
+  margin-bottom: var(--space-1);
+  font-weight: 600;
+}

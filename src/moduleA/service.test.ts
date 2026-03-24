@@ -6,17 +6,27 @@ import {
   toModuleAWriteErrorMessage,
 } from "./service";
 
-const { addDocMock, collectionMock, getDocsMock, queryMock, serverTimestampMock } = vi.hoisted(
-  () => ({
+const {
+  addDocMock,
+  collectionMock,
+  getDocsMock,
+  queryMock,
+  serverTimestampMock,
+  whereMock,
+} = vi.hoisted(() => ({
     addDocMock: vi.fn(),
     collectionMock: vi.fn((...segments: unknown[]) => ({
       path: segments.slice(1).join("/"),
     })),
     getDocsMock: vi.fn(),
-    queryMock: vi.fn((target: unknown) => ({ target })),
+    queryMock: vi.fn((target: unknown, ...constraints: unknown[]) => ({ target, constraints })),
     serverTimestampMock: vi.fn(() => "server-timestamp"),
-  })
-);
+    whereMock: vi.fn((field: string, operator: string, value: unknown) => ({
+      field,
+      operator,
+      value,
+    })),
+  }));
 
 vi.mock("firebase/firestore", () => ({
   addDoc: addDocMock,
@@ -24,6 +34,7 @@ vi.mock("firebase/firestore", () => ({
   getDocs: getDocsMock,
   query: queryMock,
   serverTimestamp: serverTimestampMock,
+  where: whereMock,
 }));
 
 vi.mock("../firebase/config", () => ({
@@ -57,14 +68,24 @@ describe("moduleA service", () => {
         createDoc("note-b", {
           title: "Earlier note",
           body: "Earlier body",
+          status: "draft",
+          visibility: "private",
+          authorId: "member-1",
+          authorEmail: "member@example.com",
           createdAt: createTimestamp("2026-03-20T10:00:00.000Z"),
-          updatedAt: null,
+          updatedAt: createTimestamp("2026-03-20T10:00:00.000Z"),
+          publishedAt: null,
         }),
         createDoc("note-a", {
           title: "Later note",
           body: "Later body",
+          status: "draft",
+          visibility: "private",
+          authorId: "member-1",
+          authorEmail: "member@example.com",
           createdAt: createTimestamp("2026-03-21T10:00:00.000Z"),
-          updatedAt: null,
+          updatedAt: createTimestamp("2026-03-21T10:00:00.000Z"),
+          publishedAt: null,
         }),
       ],
     });
@@ -74,11 +95,19 @@ describe("moduleA service", () => {
       email: "member@example.com",
     } as never);
 
-    expect(collectionMock).toHaveBeenCalledWith(
-      { name: "test-db" },
-      "userNotes",
-      "member-1",
-      "notes"
+    expect(collectionMock).toHaveBeenCalledWith({ name: "test-db" }, "notes");
+    expect(queryMock).toHaveBeenCalledWith(
+      { path: "notes" },
+      {
+        field: "visibility",
+        operator: "==",
+        value: "private",
+      },
+      {
+        field: "authorId",
+        operator: "==",
+        value: "member-1",
+      }
     );
     expect(result.map((item) => item.id)).toEqual(["note-a", "note-b"]);
   });
@@ -89,6 +118,10 @@ describe("moduleA service", () => {
         createDoc("untitled-note", {
           title: "   ",
           body: null,
+          status: "draft",
+          visibility: "private",
+          authorId: "member-1",
+          authorEmail: null,
           createdAt: "not-a-timestamp",
           updatedAt: "also-not-a-timestamp",
         }),
@@ -104,9 +137,14 @@ describe("moduleA service", () => {
       {
         id: "untitled-note",
         title: "untitled-note",
-        body: "",
+        body: "No note body provided.",
+        status: "draft",
+        visibility: "private",
+        authorId: "member-1",
+        authorEmail: "Unknown author",
         createdAt: null,
         updatedAt: null,
+        publishedAt: null,
       },
     ]);
   });
@@ -136,14 +174,17 @@ describe("moduleA service", () => {
 
     expect(documentId).toBe("note-123");
     expect(addDocMock).toHaveBeenCalledWith(
-      { path: "userNotes/member-1/notes" },
+      { path: "notes" },
       {
         title: "Launch note",
         body: "Remember the checklist.",
+        status: "draft",
+        visibility: "private",
+        authorId: "member-1",
+        authorEmail: "member@example.com",
         createdAt: "server-timestamp",
-        updatedAt: null,
-        createdByUid: "member-1",
-        createdByEmail: "member@example.com",
+        updatedAt: "server-timestamp",
+        publishedAt: null,
       }
     );
   });

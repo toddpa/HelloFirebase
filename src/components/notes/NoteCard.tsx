@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { NoteDisplayOptions, NoteRecord } from "./types";
+import styles from "./NoteCard.module.css";
 
 type NoteCardProps = {
   note: NoteRecord;
@@ -21,8 +22,8 @@ export default function NoteCard({ note, displayOptions, actions }: NoteCardProp
   const showPublicationStatus = displayOptions?.showPublicationStatus ?? false;
 
   return (
-    <article className="record-card note-card">
-      <div className="note-card-header">
+    <article className={`record-card ${styles.card}`}>
+      <div className={styles.header}>
         <div>
           <strong>{note.title}</strong>
           <p className="muted-copy">{formatTimestampLabel("Created", note.createdAt)}</p>
@@ -37,9 +38,8 @@ export default function NoteCard({ note, displayOptions, actions }: NoteCardProp
           {actions}
         </div>
       </div>
-      <p className="note-body">{note.body}</p>
+      <p className={styles.body}>{note.body}</p>
       {showAuthorEmail && note.createdByEmail ? <p className="muted-copy">Posted by {note.createdByEmail}</p> : null}
     </article>
   );
 }
-

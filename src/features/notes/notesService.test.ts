@@ -3,7 +3,7 @@ import { createDashboardNote, toDashboardNoteWriteErrorMessage } from "./notesSe
 
 const { addDocMock, collectionMock, serverTimestampMock } = vi.hoisted(() => ({
   addDocMock: vi.fn(),
-  collectionMock: vi.fn(() => ({ path: "dashboardNotes" })),
+  collectionMock: vi.fn(() => ({ path: "notes" })),
   serverTimestampMock: vi.fn(() => "server-timestamp"),
 }));
 
@@ -38,7 +38,7 @@ describe("notesService", () => {
           published: true,
         }
       )
-    ).rejects.toThrow("A signed-in admin uid is required before saving.");
+    ).rejects.toThrow("A signed-in user uid is required before saving.");
 
     expect(addDocMock).not.toHaveBeenCalled();
   });
@@ -64,6 +64,38 @@ describe("notesService", () => {
   it("returns a generic save message for unknown write failures", () => {
     expect(toDashboardNoteWriteErrorMessage({})).toBe(
       "Unable to save the dashboard note right now."
+    );
+  });
+
+  it("writes shared notes into the unified notes collection", async () => {
+    addDocMock.mockResolvedValue({ id: "note-123" });
+
+    const documentId = await createDashboardNote(
+      {
+        uid: " admin-1 ",
+        email: " admin@example.com ",
+      } as never,
+      {
+        title: " Weekly dashboard briefing ",
+        body: " Share the update approved users should see on the dashboard. ",
+        published: true,
+      }
+    );
+
+    expect(documentId).toBe("note-123");
+    expect(addDocMock).toHaveBeenCalledWith(
+      { path: "notes" },
+      {
+        title: "Weekly dashboard briefing",
+        body: "Share the update approved users should see on the dashboard.",
+        status: "published",
+        visibility: "shared",
+        authorId: "admin-1",
+        authorEmail: "admin@example.com",
+        createdAt: "server-timestamp",
+        updatedAt: "server-timestamp",
+        publishedAt: "server-timestamp",
+      }
     );
   });
 });

@@ -1,0 +1,38 @@
+.page-shell {
+  width: min(1320px, calc(100% - 3rem));
+  margin: 0 auto;
+  padding: 3rem 0 4rem;
+}
+
+.dashboard-layout-shell {
+  width: min(1480px, calc(100% - 3rem));
+  margin: 0 auto;
+  padding: 1.5rem 0 3rem;
+}
+
+.dashboard-frame {
+  display: flex;
+  gap: var(--space-8);
+  align-items: flex-start;
+}
+
+.dashboard-main {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 780px) {
+  .page-shell {
+    width: min(100% - 1.25rem, 1120px);
+    padding-top: 1.5rem;
+  }
+
+  .dashboard-layout-shell {
+    width: min(100% - 1.25rem, 1280px);
+    padding-top: 1rem;
+  }
+
+  .dashboard-frame {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,57 @@
+:root {
+  --font-family-base: "Segoe UI", "Helvetica Neue", sans-serif;
+
+  --color-text: #14323f;
+  --color-text-muted: #5b7280;
+  --color-text-accent: #204b36;
+  --color-text-success: #1c6b49;
+  --color-text-danger: #b42318;
+  --color-text-on-dark: #f9fbfc;
+  --color-text-eyebrow: #5a7a69;
+
+  --color-bg-page-start: #f4fbf6;
+  --color-bg-page-mid: #edf4f7;
+  --color-bg-page-end: #f7f2e8;
+  --color-surface: rgba(255, 255, 255, 0.82);
+  --color-surface-strong: rgba(255, 255, 255, 0.92);
+  --color-surface-soft: rgba(244, 251, 246, 0.95);
+  --color-surface-soft-alt: rgba(236, 244, 247, 0.95);
+  --color-surface-tint: rgba(244, 251, 246, 0.9);
+  --color-accent-soft: rgba(109, 180, 143, 0.14);
+  --color-accent-glow: rgba(109, 180, 143, 0.22);
+
+  --color-border: rgba(20, 50, 63, 0.12);
+  --color-border-strong: rgba(20, 50, 63, 0.28);
+  --color-border-soft: rgba(90, 122, 105, 0.18);
+  --color-border-soft-strong: rgba(90, 122, 105, 0.28);
+  --color-border-dashed: rgba(90, 122, 105, 0.3);
+  --color-border-input: #b2c6cf;
+  --color-border-danger: #a94442;
+
+  --shadow-panel: 0 20px 60px rgba(20, 50, 63, 0.1);
+
+  --radius-input: 16px;
+  --radius-card: 20px;
+  --radius-panel: 28px;
+  --radius-pill: 999px;
+  --radius-select: 12px;
+
+  --space-1: 0.35rem;
+  --space-2: 0.55rem;
+  --space-3: 0.65rem;
+  --space-4: 0.75rem;
+  --space-5: 0.85rem;
+  --space-6: 0.9rem;
+  --space-7: 0.95rem;
+  --space-8: 1rem;
+  --space-9: 1.1rem;
+  --space-10: 1.25rem;
+  --space-12: 1.5rem;
+  --space-16: 2rem;
+
+  --text-body: 15px;
+  --text-body-mobile: 16px;
+  --text-eyebrow: 0.8rem;
+  --text-title: clamp(1.8rem, 2.5vw, 2.5rem);
+  --text-title-compact: clamp(1.45rem, 1.8vw, 1.95rem);
+}

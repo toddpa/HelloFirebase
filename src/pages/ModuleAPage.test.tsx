@@ -42,8 +42,13 @@ describe("ModuleAPage", () => {
         id: "welcome",
         title: "Welcome",
         body: "Private note body.",
+        status: "draft",
+        visibility: "private",
+        authorId: "member-1",
+        authorEmail: "member@example.com",
         createdAt: null,
         updatedAt: null,
+        publishedAt: null,
       },
     ]);
 
@@ -80,8 +85,13 @@ describe("ModuleAPage", () => {
           id: "launch-note",
           title: "Launch note",
           body: "Remember the launch checklist.",
+          status: "draft",
+          visibility: "private",
+          authorId: "member-1",
+          authorEmail: "member@example.com",
           createdAt: null,
           updatedAt: null,
+          publishedAt: null,
         },
       ]);
     vi.mocked(createModuleAItem).mockResolvedValue("launch-note");

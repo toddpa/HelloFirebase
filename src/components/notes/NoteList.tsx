@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { EmptyState } from "../ui";
 import NoteCard from "./NoteCard";
 import type { NoteDisplayOptions, NoteRecord } from "./types";
+import styles from "./NoteList.module.css";
 
 type NoteListProps = {
   notes: NoteRecord[];
@@ -25,7 +26,7 @@ export default function NoteList({
   }
 
   return (
-    <div className="record-list" aria-label={ariaLabel}>
+    <div className={styles.list} aria-label={ariaLabel}>
       {notes.map((note) => (
         <NoteCard
           key={note.id}

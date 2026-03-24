@@ -62,33 +62,43 @@ describe("notesService read paths", () => {
         createDoc("note-b", {
           title: "Earlier",
           body: "Earlier body",
+          status: "published",
+          visibility: "shared",
           createdAt: createTimestamp("2026-03-20T10:00:00.000Z"),
-          createdByUid: "admin-1",
-          createdByEmail: "admin@example.com",
+          authorId: "admin-1",
+          authorEmail: "admin@example.com",
           updatedAt: null,
-          published: true,
+          publishedAt: createTimestamp("2026-03-20T10:00:00.000Z"),
         }),
         createDoc("note-a", {
           title: "Later",
           body: "Later body",
+          status: "published",
+          visibility: "shared",
           createdAt: createTimestamp("2026-03-21T10:00:00.000Z"),
-          createdByUid: "admin-1",
-          createdByEmail: "admin@example.com",
+          authorId: "admin-1",
+          authorEmail: "admin@example.com",
           updatedAt: null,
-          published: true,
+          publishedAt: createTimestamp("2026-03-21T10:00:00.000Z"),
         }),
       ],
     });
 
     const result = await listPublishedDashboardNotes();
 
-    expect(whereMock).toHaveBeenCalledWith("published", "==", true);
+    expect(whereMock).toHaveBeenCalledWith("visibility", "==", "shared");
+    expect(whereMock).toHaveBeenCalledWith("status", "==", "published");
     expect(queryMock).toHaveBeenCalledWith(
-      { path: "dashboardNotes" },
+      { path: "notes" },
       {
-        field: "published",
+        field: "visibility",
         operator: "==",
-        value: true,
+        value: "shared",
+      },
+      {
+        field: "status",
+        operator: "==",
+        value: "published",
       }
     );
     expect(result.map((note) => note.id)).toEqual(["note-a", "note-b"]);
@@ -100,11 +110,13 @@ describe("notesService read paths", () => {
         createDoc("fallback-note", {
           title: "   ",
           body: "   ",
+          status: "unexpected",
+          visibility: "surprise",
           createdAt: null,
-          createdByUid: "   ",
-          createdByEmail: null,
+          authorId: "   ",
+          authorEmail: null,
           updatedAt: "not-a-timestamp",
-          published: "not-a-boolean",
+          publishedAt: "not-a-timestamp",
         }),
       ],
     });
@@ -114,15 +126,24 @@ describe("notesService read paths", () => {
         id: "fallback-note",
         title: "fallback-note",
         body: "No note body provided.",
+        status: "draft",
+        visibility: "private",
         createdAt: null,
-        createdByUid: "unknown-author",
-        createdByEmail: "Unknown author",
+        authorId: "unknown-author",
+        authorEmail: "Unknown author",
         updatedAt: null,
-        published: false,
+        publishedAt: null,
       },
     ]);
 
-    expect(queryMock).not.toHaveBeenCalled();
+    expect(queryMock).toHaveBeenCalledWith(
+      { path: "notes" },
+      {
+        field: "visibility",
+        operator: "==",
+        value: "shared",
+      }
+    );
   });
 
   it("delegates recent note loading to the unpublished-inclusive query", async () => {
@@ -130,7 +151,16 @@ describe("notesService read paths", () => {
 
     await listRecentDashboardNotes();
 
-    expect(getDocsMock).toHaveBeenCalledWith({ path: "dashboardNotes" });
+    expect(getDocsMock).toHaveBeenCalledWith({
+      target: { path: "notes" },
+      constraints: [
+        {
+          field: "visibility",
+          operator: "==",
+          value: "shared",
+        },
+      ],
+    });
   });
 
   it("returns readable dashboard note read errors", () => {

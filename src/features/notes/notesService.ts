@@ -7,25 +7,33 @@ import {
   serverTimestamp,
   where,
   type DocumentData,
+  type QueryConstraint,
   type QueryDocumentSnapshot,
   type Timestamp,
 } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import {
-  DASHBOARD_NOTES_COLLECTION,
+  NOTES_COLLECTION,
+  type AppNote,
+  type CreateNoteInput,
   type DashboardNote,
   type DashboardNoteFormState,
   type GetDashboardNotesOptions,
+  type ListNotesOptions,
+  type PrivateNote,
+  type PrivateNoteFormState,
 } from "./types";
 
-type DashboardNoteDocument = {
+type NoteDocument = {
   title?: unknown;
   body?: unknown;
+  status?: unknown;
+  visibility?: unknown;
+  authorId?: unknown;
+  authorEmail?: unknown;
   createdAt?: unknown;
-  createdByUid?: unknown;
-  createdByEmail?: unknown;
   updatedAt?: unknown;
-  published?: unknown;
+  publishedAt?: unknown;
 };
 
 function normalizeFormValue(value: string) {
@@ -44,22 +52,34 @@ function readTimestamp(value: unknown): Timestamp | null {
   return typeof value === "object" && value !== null && "toDate" in value ? (value as Timestamp) : null;
 }
 
-function toDashboardNote(documentSnapshot: QueryDocumentSnapshot<DocumentData>): DashboardNote {
-  const data = documentSnapshot.data() as DashboardNoteDocument;
+function readStatus(value: unknown) {
+  return value === "published" ? "published" : "draft";
+}
+
+function readVisibility(value: unknown) {
+  return value === "shared" ? "shared" : "private";
+}
+
+function toAppNote(documentSnapshot: QueryDocumentSnapshot<DocumentData>): AppNote {
+  const data = documentSnapshot.data() as NoteDocument;
+  const createdAt = readTimestamp(data.createdAt);
+  const updatedAt = readTimestamp(data.updatedAt);
 
   return {
     id: documentSnapshot.id,
     title: readString(data.title) ?? documentSnapshot.id,
     body: readString(data.body) ?? "No note body provided.",
-    createdAt: readTimestamp(data.createdAt),
-    createdByUid: readString(data.createdByUid) ?? "unknown-author",
-    createdByEmail: readString(data.createdByEmail) ?? "Unknown author",
-    updatedAt: readTimestamp(data.updatedAt),
-    published: typeof data.published === "boolean" ? data.published : false,
+    status: readStatus(data.status),
+    visibility: readVisibility(data.visibility),
+    authorId: readString(data.authorId) ?? "unknown-author",
+    authorEmail: readString(data.authorEmail) ?? "Unknown author",
+    createdAt,
+    updatedAt,
+    publishedAt: readTimestamp(data.publishedAt),
   };
 }
 
-function compareDashboardNotes(left: DashboardNote, right: DashboardNote) {
+function compareNotes(left: AppNote, right: AppNote) {
   if (left.createdAt && right.createdAt) {
     const createdAtDifference = right.createdAt.toMillis() - left.createdAt.toMillis();
 
@@ -77,6 +97,24 @@ function compareDashboardNotes(left: DashboardNote, right: DashboardNote) {
   }
 
   return left.title.localeCompare(right.title);
+}
+
+function buildNotesQuery(options: ListNotesOptions) {
+  const constraints: QueryConstraint[] = [where("visibility", "==", options.visibility)];
+
+  if (options.status) {
+    constraints.push(where("status", "==", options.status));
+  }
+
+  if (options.authorId) {
+    constraints.push(where("authorId", "==", options.authorId));
+  }
+
+  return query(collection(db, NOTES_COLLECTION), ...constraints);
+}
+
+function toServerTimestampOrNull(shouldInclude: boolean) {
+  return shouldInclude ? serverTimestamp() : null;
 }
 
 export function toDashboardNotesErrorMessage(error: unknown) {
@@ -113,16 +151,92 @@ export function toDashboardNoteWriteErrorMessage(error: unknown) {
   return "Unable to save the dashboard note right now.";
 }
 
+export function toPrivateNotesErrorMessage(error: unknown) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "permission-denied"
+  ) {
+    return "You do not have permission to read your notes right now.";
+  }
+
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return "Unable to load your notes right now.";
+}
+
+export function toPrivateNoteWriteErrorMessage(error: unknown) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "permission-denied"
+  ) {
+    return "You do not have permission to save notes right now.";
+  }
+
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return "Unable to save your note right now.";
+}
+
+export async function listNotes(options: ListNotesOptions): Promise<AppNote[]> {
+  const snapshot = await getDocs(buildNotesQuery(options));
+  return snapshot.docs.map(toAppNote).sort(compareNotes);
+}
+
+export async function createNote(user: User, input: CreateNoteInput) {
+  const title = normalizeFormValue(input.title);
+  const body = normalizeFormValue(input.body);
+  const authorId = normalizeUserValue(user.uid);
+  const authorEmail = normalizeUserValue(user.email);
+  const publishedAt = toServerTimestampOrNull(
+    input.visibility === "shared" && input.status === "published"
+  );
+
+  if (!title) {
+    throw new Error("Enter a note title before saving.");
+  }
+
+  if (!body) {
+    throw new Error("Enter the note details before saving.");
+  }
+
+  if (!authorId) {
+    throw new Error("A signed-in user uid is required before saving.");
+  }
+
+  if (!authorEmail) {
+    throw new Error("A signed-in user email is required before saving.");
+  }
+
+  const documentReference = await addDoc(collection(db, NOTES_COLLECTION), {
+    title,
+    body,
+    status: input.status,
+    visibility: input.visibility,
+    authorId,
+    authorEmail,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    publishedAt,
+  });
+
+  return documentReference.id;
+}
+
 export async function getDashboardNotes(
   options: GetDashboardNotesOptions = {}
 ): Promise<DashboardNote[]> {
-  const notesCollection = collection(db, DASHBOARD_NOTES_COLLECTION);
-  const notesQuery = options.includeUnpublished
-    ? notesCollection
-    : query(notesCollection, where("published", "==", true));
-  const snapshot = await getDocs(notesQuery);
-
-  return snapshot.docs.map(toDashboardNote).sort(compareDashboardNotes);
+  return listNotes({
+    visibility: "shared",
+    status: options.includeUnpublished ? undefined : "published",
+  });
 }
 
 export async function listPublishedDashboardNotes(): Promise<DashboardNote[]> {
@@ -134,44 +248,42 @@ export async function listRecentDashboardNotes(): Promise<DashboardNote[]> {
 }
 
 export async function createDashboardNote(user: User, formState: DashboardNoteFormState) {
-  const title = normalizeFormValue(formState.title);
-  const body = normalizeFormValue(formState.body);
-  const published = formState.published ?? true;
-  const userUid = normalizeUserValue(user.uid);
-  const userEmail = normalizeUserValue(user.email);
-
-  if (!title) {
-    throw new Error("Enter a note title before saving.");
-  }
-
-  if (!body) {
-    throw new Error("Enter the note details before saving.");
-  }
-
-  if (!userEmail) {
-    throw new Error("A signed-in admin email is required before saving.");
-  }
-
-  if (!userUid) {
-    throw new Error("A signed-in admin uid is required before saving.");
-  }
+  const status = formState.published ? "published" : "draft";
 
   try {
-    const documentReference = await addDoc(collection(db, DASHBOARD_NOTES_COLLECTION), {
-      title,
-      body,
-      createdAt: serverTimestamp(),
-      createdByUid: userUid,
-      createdByEmail: userEmail,
-      updatedAt: null,
-      published,
-    } satisfies Omit<DashboardNote, "id" | "createdAt" | "updatedAt"> & {
-      createdAt: ReturnType<typeof serverTimestamp>;
-      updatedAt: null;
+    return await createNote(user, {
+      title: formState.title,
+      body: formState.body,
+      visibility: "shared",
+      status,
     });
-
-    return documentReference.id;
   } catch (error: unknown) {
     throw new Error(toDashboardNoteWriteErrorMessage(error));
+  }
+}
+
+export async function listPrivateNotes(user: User): Promise<PrivateNote[]> {
+  const authorId = normalizeUserValue(user.uid);
+
+  if (!authorId) {
+    throw new Error("A signed-in user uid is required before loading your notes.");
+  }
+
+  return listNotes({
+    visibility: "private",
+    authorId,
+  });
+}
+
+export async function createPrivateNote(user: User, formState: PrivateNoteFormState) {
+  try {
+    return await createNote(user, {
+      title: formState.title,
+      body: formState.body,
+      visibility: "private",
+      status: "draft",
+    });
+  } catch (error: unknown) {
+    throw new Error(toPrivateNoteWriteErrorMessage(error));
   }
 }

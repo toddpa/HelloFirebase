@@ -6,6 +6,7 @@ import type {
   NoteEditorMode,
   NoteEditorPlaceholders,
 } from "./types";
+import styles from "./NoteEditor.module.css";
 
 const DEFAULT_DRAFT: Required<NoteDraft> = {
   title: "",
@@ -80,7 +81,7 @@ export default function NoteEditor({
     mode === "edit" ? editSubmitLabel : showPublishedToggle && !draft.published ? unpublishedSubmitLabel : createSubmitLabel;
 
   return (
-    <form className="stacked-form" onSubmit={(event) => void handleSubmit(event)}>
+    <form className={styles.form} onSubmit={(event) => void handleSubmit(event)}>
       <div>
         <label className="field-label" htmlFor={titleFieldId}>
           {labels?.titleLabel ?? "Title"}
@@ -120,7 +121,7 @@ export default function NoteEditor({
       </div>
 
       {showPublishedToggle && publishedFieldId ? (
-        <label className="checkbox-row" htmlFor={publishedFieldId}>
+        <label className={styles.checkboxRow} htmlFor={publishedFieldId}>
           <input
             id={publishedFieldId}
             type="checkbox"

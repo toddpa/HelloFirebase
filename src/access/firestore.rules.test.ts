@@ -35,9 +35,7 @@ async function seedAsAdmin(data: {
   allowedEmails?: Array<{ id: string; value: Record<string, unknown> }>;
   accessRequests?: Array<{ id: string; value: Record<string, unknown> }>;
   subscriberContent?: Array<{ id: string; value: Record<string, unknown> }>;
-  adminAnnouncements?: Array<{ id: string; value: Record<string, unknown> }>;
-  dashboardNotes?: Array<{ id: string; value: Record<string, unknown> }>;
-  userNotes?: Array<{ ownerId: string; id: string; value: Record<string, unknown> }>;
+  notes?: Array<{ id: string; value: Record<string, unknown> }>;
 }) {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
@@ -58,16 +56,8 @@ async function seedAsAdmin(data: {
       await setDoc(doc(db, "subscriberContent", record.id), record.value);
     }
 
-    for (const record of data.adminAnnouncements ?? []) {
-      await setDoc(doc(db, "adminAnnouncements", record.id), record.value);
-    }
-
-    for (const record of data.dashboardNotes ?? []) {
-      await setDoc(doc(db, "dashboardNotes", record.id), record.value);
-    }
-
-    for (const record of data.userNotes ?? []) {
-      await setDoc(doc(db, "userNotes", record.ownerId, "notes", record.id), record.value);
+    for (const record of data.notes ?? []) {
+      await setDoc(doc(db, "notes", record.id), record.value);
     }
   });
 }
@@ -164,7 +154,7 @@ describe("Firestore access control rules", () => {
     );
   });
 
-  it("lets admins create admin announcements, lets approved users read them, and blocks approved users from writing", async () => {
+  it("lets admins create shared notes, lets approved users read only published shared notes, and blocks non-admin shared-note writes", async () => {
     await seedAsAdmin({
       adminUsers: [
         {
@@ -187,67 +177,19 @@ describe("Firestore access control rules", () => {
           },
         },
       ],
-    });
-
-    const adminDb = authedContext("admin@example.com", "admin-uid").firestore();
-    const memberDb = authedContext("member@example.com", "member-uid").firestore();
-
-    await assertSucceeds(
-      setDoc(doc(adminDb, "adminAnnouncements", "ops-note"), {
-        title: "Ops note",
-        description: "Restricted admin update.",
-        createdBy: "admin-uid",
-        createdAt: serverTimestamp(),
-      })
-    );
-
-    await assertSucceeds(getDoc(doc(memberDb, "adminAnnouncements", "ops-note")));
-    await assertSucceeds(getDocs(collection(memberDb, "adminAnnouncements")));
-
-    await assertFails(
-      setDoc(doc(memberDb, "adminAnnouncements", "member-note"), {
-        title: "Member note",
-        description: "This should fail.",
-        createdBy: "member-uid",
-        createdAt: serverTimestamp(),
-      })
-    );
-  });
-
-  it("lets admins create dashboard notes and lets approved users read only published ones", async () => {
-    await seedAsAdmin({
-      adminUsers: [
-        {
-          id: "admin@example.com",
-          value: {
-            uid: "admin-uid",
-            email: "admin@example.com",
-            normalizedEmail: "admin@example.com",
-            role: "admin",
-          },
-        },
-      ],
-      allowedEmails: [
-        {
-          id: "member@example.com",
-          value: {
-            email: "member@example.com",
-            normalizedEmail: "member@example.com",
-            createdBy: "admin-uid",
-          },
-        },
-      ],
-      dashboardNotes: [
+      notes: [
         {
           id: "published-note",
           value: {
             title: "Published note",
             body: "Visible to approved users.",
+            status: "published",
+            visibility: "shared",
+            authorId: "admin-uid",
+            authorEmail: "admin@example.com",
             createdAt: new Date("2026-03-17T00:00:00.000Z"),
-            createdByUid: "admin-uid",
-            createdByEmail: "admin@example.com",
-            updatedAt: null,
-            published: true,
+            updatedAt: new Date("2026-03-17T00:00:00.000Z"),
+            publishedAt: new Date("2026-03-17T00:00:00.000Z"),
           },
         },
         {
@@ -255,11 +197,13 @@ describe("Firestore access control rules", () => {
           value: {
             title: "Draft note",
             body: "Admins only.",
+            status: "draft",
+            visibility: "shared",
+            authorId: "admin-uid",
+            authorEmail: "admin@example.com",
             createdAt: new Date("2026-03-17T00:05:00.000Z"),
-            createdByUid: "admin-uid",
-            createdByEmail: "admin@example.com",
-            updatedAt: null,
-            published: false,
+            updatedAt: new Date("2026-03-17T00:05:00.000Z"),
+            publishedAt: null,
           },
         },
       ],
@@ -269,32 +213,42 @@ describe("Firestore access control rules", () => {
     const memberDb = authedContext("member@example.com", "member-uid").firestore();
 
     await assertSucceeds(
-      setDoc(doc(adminDb, "dashboardNotes", "new-note"), {
+      setDoc(doc(adminDb, "notes", "new-note"), {
         title: "New note",
         body: "Admin-created dashboard note.",
+        status: "published",
+        visibility: "shared",
+        authorId: "admin-uid",
+        authorEmail: "admin@example.com",
         createdAt: serverTimestamp(),
-        createdByUid: "admin-uid",
-        createdByEmail: "admin@example.com",
-        updatedAt: null,
-        published: true,
+        updatedAt: serverTimestamp(),
+        publishedAt: serverTimestamp(),
       })
     );
 
-    await assertSucceeds(getDoc(doc(adminDb, "dashboardNotes", "draft-note")));
-    await assertSucceeds(getDoc(doc(memberDb, "dashboardNotes", "published-note")));
-    await assertFails(getDoc(doc(memberDb, "dashboardNotes", "draft-note")));
+    await assertSucceeds(getDoc(doc(adminDb, "notes", "draft-note")));
+    await assertSucceeds(getDoc(doc(memberDb, "notes", "published-note")));
+    await assertFails(getDoc(doc(memberDb, "notes", "draft-note")));
     await assertSucceeds(
-      getDocs(query(collection(memberDb, "dashboardNotes"), where("published", "==", true)))
+      getDocs(
+        query(
+          collection(memberDb, "notes"),
+          where("visibility", "==", "shared"),
+          where("status", "==", "published")
+        )
+      )
     );
     await assertFails(
-      setDoc(doc(memberDb, "dashboardNotes", "member-note"), {
+      setDoc(doc(memberDb, "notes", "member-shared-note"), {
         title: "Member note",
         body: "This should fail.",
+        status: "published",
+        visibility: "shared",
+        authorId: "member-uid",
+        authorEmail: "member@example.com",
         createdAt: serverTimestamp(),
-        createdByUid: "member-uid",
-        createdByEmail: "member@example.com",
-        updatedAt: null,
-        published: true,
+        updatedAt: serverTimestamp(),
+        publishedAt: serverTimestamp(),
       })
     );
   });
@@ -330,17 +284,19 @@ describe("Firestore access control rules", () => {
           },
         },
       ],
-      userNotes: [
+      notes: [
         {
-          ownerId: "member-uid",
           id: "member-note",
           value: {
             title: "Member note",
             body: "Visible only to the owner.",
+            status: "draft",
+            visibility: "private",
+            authorId: "member-uid",
+            authorEmail: "member@example.com",
             createdAt: new Date("2026-03-17T01:00:00.000Z"),
-            updatedAt: null,
-            createdByUid: "member-uid",
-            createdByEmail: "member@example.com",
+            updatedAt: new Date("2026-03-17T01:00:00.000Z"),
+            publishedAt: null,
           },
         },
       ],
@@ -350,35 +306,47 @@ describe("Firestore access control rules", () => {
     const otherDb = authedContext("other@example.com", "other-uid").firestore();
 
     await assertSucceeds(
-      setDoc(doc(memberDb, "userNotes", "member-uid", "notes", "new-member-note"), {
+      setDoc(doc(memberDb, "notes", "new-member-note"), {
         title: "New private note",
         body: "Only I should see this.",
+        status: "draft",
+        visibility: "private",
+        authorId: "member-uid",
+        authorEmail: "member@example.com",
         createdAt: serverTimestamp(),
-        updatedAt: null,
-        createdByUid: "member-uid",
-        createdByEmail: "member@example.com",
+        updatedAt: serverTimestamp(),
+        publishedAt: null,
       })
     );
 
-    await assertSucceeds(getDoc(doc(memberDb, "userNotes", "member-uid", "notes", "member-note")));
+    await assertSucceeds(getDoc(doc(memberDb, "notes", "member-note")));
     await assertSucceeds(
-      getDocs(collection(memberDb, "userNotes", "member-uid", "notes"))
+      getDocs(
+        query(
+          collection(memberDb, "notes"),
+          where("visibility", "==", "private"),
+          where("authorId", "==", "member-uid")
+        )
+      )
     );
 
-    await assertFails(getDoc(doc(otherDb, "userNotes", "member-uid", "notes", "member-note")));
+    await assertFails(getDoc(doc(otherDb, "notes", "member-note")));
     await assertFails(
-      setDoc(doc(otherDb, "userNotes", "member-uid", "notes", "forged-note"), {
+      setDoc(doc(otherDb, "notes", "forged-note"), {
         title: "Forged note",
         body: "This should fail.",
+        status: "draft",
+        visibility: "private",
+        authorId: "member-uid",
+        authorEmail: "member@example.com",
         createdAt: serverTimestamp(),
-        updatedAt: null,
-        createdByUid: "member-uid",
-        createdByEmail: "member@example.com",
+        updatedAt: serverTimestamp(),
+        publishedAt: null,
       })
     );
   });
 
-  it("blocks dashboard note updates and deletes for admins and approved users", async () => {
+  it("blocks note updates and deletes for admins and approved users", async () => {
     await seedAsAdmin({
       adminUsers: [
         {
@@ -401,17 +369,19 @@ describe("Firestore access control rules", () => {
           },
         },
       ],
-      dashboardNotes: [
+      notes: [
         {
           id: "published-note",
           value: {
             title: "Published note",
             body: "Visible to approved users.",
+            status: "published",
+            visibility: "shared",
+            authorId: "admin-uid",
+            authorEmail: "admin@example.com",
             createdAt: new Date("2026-03-17T00:00:00.000Z"),
-            createdByUid: "admin-uid",
-            createdByEmail: "admin@example.com",
-            updatedAt: null,
-            published: true,
+            updatedAt: new Date("2026-03-17T00:00:00.000Z"),
+            publishedAt: new Date("2026-03-17T00:00:00.000Z"),
           },
         },
       ],
@@ -421,18 +391,18 @@ describe("Firestore access control rules", () => {
     const memberDb = authedContext("member@example.com", "member-uid").firestore();
 
     await assertFails(
-      updateDoc(doc(adminDb, "dashboardNotes", "published-note"), {
+      updateDoc(doc(adminDb, "notes", "published-note"), {
         body: "Updated body",
         updatedAt: serverTimestamp(),
       })
     );
-    await assertFails(deleteDoc(doc(adminDb, "dashboardNotes", "published-note")));
+    await assertFails(deleteDoc(doc(adminDb, "notes", "published-note")));
     await assertFails(
-      updateDoc(doc(memberDb, "dashboardNotes", "published-note"), {
+      updateDoc(doc(memberDb, "notes", "published-note"), {
         body: "Member edit attempt",
       })
     );
-    await assertFails(deleteDoc(doc(memberDb, "dashboardNotes", "published-note")));
+    await assertFails(deleteDoc(doc(memberDb, "notes", "published-note")));
   });
 
   it("blocks unknown, pending, and denied users from reading protected subscriber data", async () => {
@@ -778,7 +748,7 @@ describe("Firestore access control rules", () => {
     await assertFails(getDoc(doc(memberDb, "adminUsers", "admin@example.com")));
   });
 
-  it("enforces payload validation for admin announcements and dashboard notes", async () => {
+  it("enforces payload validation for shared notes", async () => {
     await seedAsAdmin({
       adminUsers: [
         {
@@ -796,23 +766,30 @@ describe("Firestore access control rules", () => {
     const adminDb = authedContext("admin@example.com", "admin-uid").firestore();
 
     await assertFails(
-      setDoc(doc(adminDb, "adminAnnouncements", "bad-note"), {
+      setDoc(doc(adminDb, "notes", "bad-shared-note"), {
         title: "Ops note",
-        description: "",
-        createdBy: "admin-uid",
+        body: "",
+        status: "published",
+        visibility: "shared",
+        authorId: "admin-uid",
+        authorEmail: "admin@example.com",
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        publishedAt: serverTimestamp(),
       })
     );
 
     await assertFails(
-      setDoc(doc(adminDb, "dashboardNotes", "bad-dashboard-note"), {
+      setDoc(doc(adminDb, "notes", "bad-dashboard-note"), {
         title: "Bad dashboard note",
         body: "This payload has the wrong author email.",
+        status: "published",
+        visibility: "shared",
+        authorId: "admin-uid",
+        authorEmail: "other@example.com",
         createdAt: serverTimestamp(),
-        createdByUid: "admin-uid",
-        createdByEmail: "other@example.com",
-        updatedAt: null,
-        published: true,
+        updatedAt: serverTimestamp(),
+        publishedAt: serverTimestamp(),
       })
     );
   });
@@ -834,24 +811,30 @@ describe("Firestore access control rules", () => {
     const memberDb = authedContext("member@example.com", "member-uid").firestore();
 
     await assertFails(
-      setDoc(doc(memberDb, "userNotes", "member-uid", "notes", "bad-note"), {
+      setDoc(doc(memberDb, "notes", "bad-note"), {
         title: "Bad private note",
         body: "The metadata is forged.",
+        status: "draft",
+        visibility: "private",
+        authorId: "other-uid",
+        authorEmail: "member@example.com",
         createdAt: serverTimestamp(),
-        updatedAt: null,
-        createdByUid: "other-uid",
-        createdByEmail: "member@example.com",
+        updatedAt: serverTimestamp(),
+        publishedAt: null,
       })
     );
 
     await assertFails(
-      setDoc(doc(memberDb, "userNotes", "member-uid", "notes", "also-bad-note"), {
+      setDoc(doc(memberDb, "notes", "also-bad-note"), {
         title: "Another bad note",
-        body: "updatedAt must be null on create.",
+        body: "private notes must stay drafts.",
+        status: "published",
+        visibility: "private",
+        authorId: "member-uid",
+        authorEmail: "member@example.com",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        createdByUid: "member-uid",
-        createdByEmail: "member@example.com",
+        publishedAt: serverTimestamp(),
       })
     );
   });

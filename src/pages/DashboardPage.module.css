@@ -1,0 +1,36 @@
+.homeGrid {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.heroPanel {
+  overflow: hidden;
+}
+
+.summaryCard {
+  padding: var(--space-8) var(--space-9);
+  border-radius: var(--radius-card);
+  background:
+    linear-gradient(180deg, var(--color-surface-soft), var(--color-surface-soft-alt));
+  border: 1px solid var(--color-border-soft);
+}
+
+.meta {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.meta p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.meta strong {
+  display: inline;
+  margin-bottom: 0;
+  font-size: 0.95rem;
+}
+
+.summaryValue {
+  overflow-wrap: anywhere;
+}

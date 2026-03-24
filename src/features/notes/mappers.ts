@@ -1,15 +1,23 @@
 import type { NoteDraft, NoteRecord } from "../../components/notes";
-import type { DashboardNote, DashboardNoteFormState } from "./types";
+import type { AppNote, DashboardNoteFormState, PrivateNoteFormState } from "./types";
 
-export function toNoteRecord(note: DashboardNote): NoteRecord {
+function toUiUpdatedAtValue(note: AppNote) {
+  if (!note.updatedAt || !note.createdAt) {
+    return note.updatedAt;
+  }
+
+  return note.updatedAt.toMillis() === note.createdAt.toMillis() ? null : note.updatedAt;
+}
+
+export function toNoteRecord(note: AppNote): NoteRecord {
   return {
     id: note.id,
     title: note.title,
     body: note.body,
     createdAt: note.createdAt,
-    updatedAt: note.updatedAt,
-    createdByEmail: note.createdByEmail,
-    published: note.published,
+    updatedAt: toUiUpdatedAtValue(note),
+    createdByEmail: note.authorEmail,
+    published: note.status === "published",
   };
 }
 
@@ -21,3 +29,9 @@ export function toDashboardNoteDraft(value: NoteDraft): DashboardNoteFormState {
   };
 }
 
+export function toPrivateNoteDraft(value: NoteDraft): PrivateNoteFormState {
+  return {
+    title: value.title,
+    body: value.body,
+  };
+}

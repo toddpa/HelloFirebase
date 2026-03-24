@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { getDashboardNavItems, getRouteLabel } from "../access/routes";
 import { useAuth } from "../auth/useAuth";
+import styles from "./DashboardLayout.module.css";
 
 export default function DashboardLayout() {
   const { accessState, errorMessage, signOut, user } = useAuth();
@@ -20,15 +21,15 @@ export default function DashboardLayout() {
 
   return (
     <div className="dashboard-layout-shell">
-      <header className="dashboard-topbar">
+      <header className={styles.topbar}>
         <div>
           <p className="eyebrow">Stage 3 Dashboard</p>
-          <h1 className="dashboard-title">Operations workspace</h1>
+          <h1 className={styles.title}>Operations workspace</h1>
         </div>
-        <div className="dashboard-account">
-          <div className="dashboard-account-card">
+        <div className={styles.account}>
+          <div className={styles.accountCard}>
             <p className="eyebrow">Signed In</p>
-            <p className="dashboard-account-name">{displayName}</p>
+            <p className={styles.accountName}>{displayName}</p>
             <p className="user-email">{user?.email ?? "No email available"}</p>
             <span className="status-pill">{roleLabel}</span>
           </div>
@@ -39,13 +40,15 @@ export default function DashboardLayout() {
       </header>
 
       <div className="dashboard-frame">
-        <aside className="dashboard-sidebar panel" aria-label="Dashboard navigation">
-          <nav className="dashboard-nav" aria-label="Dashboard navigation">
+        <aside className={`${styles.sidebar} panel`} aria-label="Dashboard navigation">
+          <nav className={styles.nav} aria-label="Dashboard navigation">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
-                className={({ isActive }) => (isActive ? "dashboard-nav-link active" : "dashboard-nav-link")}
+                className={({ isActive }) =>
+                  isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink
+                }
               >
                 {item.label}
               </NavLink>

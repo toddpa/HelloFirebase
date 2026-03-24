@@ -101,11 +101,13 @@ describe("App", () => {
         id: "dashboard-note-1",
         title: "Shared dashboard update",
         body: "Visible to approved users.",
+        status: "published",
+        visibility: "shared",
         createdAt: createTimestamp("2026-03-20T10:00:00.000Z"),
-        createdByUid: "admin-1",
-        createdByEmail: "admin@example.com",
+        authorId: "admin-1",
+        authorEmail: "admin@example.com",
         updatedAt: null,
-        published: true,
+        publishedAt: createTimestamp("2026-03-20T10:00:00.000Z"),
       },
     ]);
     vi.mocked(useAuth).mockReturnValue({

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import styles from "./SectionPanel.module.css";
 
 type SectionPanelProps = {
   title: string;
@@ -10,7 +11,7 @@ type SectionPanelProps = {
 export default function SectionPanel({ title, eyebrow, action, children }: SectionPanelProps) {
   return (
     <section className="panel">
-      <div className="section-heading">
+      <div className={styles.heading}>
         <div>
           {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
           <h2>{title}</h2>
@@ -21,4 +22,3 @@ export default function SectionPanel({ title, eyebrow, action, children }: Secti
     </section>
   );
 }
-

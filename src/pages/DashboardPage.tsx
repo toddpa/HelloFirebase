@@ -3,6 +3,7 @@ import { useAuth } from "../auth/useAuth";
 import { NoteList } from "../components/notes";
 import { FeedbackMessage, SectionPanel } from "../components/ui";
 import { useDashboardNotes } from "../features/notes";
+import styles from "./DashboardPage.module.css";
 
 export default function DashboardPage() {
   const { accessState, user } = useAuth();
@@ -20,15 +21,16 @@ export default function DashboardPage() {
   }, [accessState, refresh]);
 
   return (
-    <div className="dashboard-home-grid">
-      <section className="panel dashboard-hero-panel">
+    <div className={styles.homeGrid}>
+      <section className={`panel ${styles.heroPanel}`}>
         <h2>Signed-in summary</h2>
-        <div className="summary-card dashboard-meta" aria-label="Dashboard summary">
+        <div className={`${styles.summaryCard} ${styles.meta}`} aria-label="Dashboard summary">
           <p>
-            <strong>Role:</strong> <span className="summary-value">{roleLabel}</span>
+            <strong>Role:</strong> <span className={styles.summaryValue}>{roleLabel}</span>
           </p>
           <p>
-            <strong>Email:</strong> <span className="summary-value">{user?.email ?? "No email available"}</span>
+            <strong>Email:</strong>{" "}
+            <span className={styles.summaryValue}>{user?.email ?? "No email available"}</span>
           </p>
         </div>
       </section>
