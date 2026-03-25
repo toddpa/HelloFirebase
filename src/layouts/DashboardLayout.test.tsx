@@ -101,6 +101,8 @@ describe("DashboardLayout", () => {
       pathname: "/dashboard",
     });
 
+    expect(screen.getByLabelText("Main navigation panel")).toBeInTheDocument();
+    expect(screen.getByLabelText("Notes panel")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create New" })).toBeEnabled();
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Notes" })).toBeInTheDocument();
@@ -213,5 +215,32 @@ describe("DashboardLayout", () => {
     );
 
     expect(screen.getByRole("button", { name: "Create New" })).toBeDisabled();
+  });
+
+  it("renders the create action inside the notes panel instead of the main navigation panel", () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        uid: "member-1",
+        email: "member@example.com",
+        displayName: "Taylor",
+      } as ReturnType<typeof useAuth>["user"],
+      loading: false,
+      isAuthenticated: true,
+      accessState: "approved",
+      normalizedEmail: "member@example.com",
+      errorMessage: null,
+      refreshAccessState: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    renderLayout({
+      pathname: "/notes/drafts",
+    });
+
+    expect(screen.getByLabelText("Notes panel")).toContainElement(screen.getByRole("button", { name: "Create New" }));
+    expect(screen.getByLabelText("Main navigation panel")).not.toContainElement(
+      screen.getByRole("button", { name: "Create New" })
+    );
   });
 });

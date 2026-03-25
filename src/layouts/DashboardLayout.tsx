@@ -12,6 +12,7 @@ export default function DashboardLayout() {
   const roleLabel = accessState === "admin" ? "Administrator" : "Approved user";
   const navItems = getDashboardNavItems(accessState);
   const notesNavItem = navItems.find((item) => item.matchPrefixes?.includes(ROUTES.notes));
+  const mainNavItems = navItems.filter((item) => item !== notesNavItem);
   const isInNotesEditorMode =
     location.pathname === ROUTES.notesNew ||
     (location.pathname.startsWith(`${ROUTES.notes}/`) &&
@@ -60,49 +61,73 @@ export default function DashboardLayout() {
 
       <div className="dashboard-frame">
         <aside className={`${styles.sidebar} panel`} aria-label="Dashboard navigation">
-          {notesNavItem ? (
-            <div className={styles.sidebarCreate}>
-              <button
-                type="button"
-                className="primary-button"
-                disabled={isInNotesEditorMode}
-                onClick={() =>
-                  navigate(ROUTES.notesNew, {
-                    state: { returnTo: createReturnTo },
-                  })
-                }
-              >
-                Create New
-              </button>
-            </div>
-          ) : null}
           <nav className={styles.nav} aria-label="Dashboard navigation">
-            {navItems.map((item) => (
-              <div key={item.to} className={styles.navGroup}>
-                <NavLink
-                  to={item.to}
-                  aria-current={isNavItemActive(item) ? "page" : undefined}
-                  className={isNavItemActive(item) ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink}
-                >
-                  {item.label}
-                </NavLink>
-                {item.children?.length ? (
-                  <div className={styles.subnav} aria-label={`${item.label} navigation`}>
-                    {item.children.map((child) => (
-                      <NavLink
-                        key={child.to}
-                        to={child.to}
-                        className={({ isActive }) =>
-                          isActive ? `${styles.subnavLink} ${styles.subnavLinkActive}` : styles.subnavLink
+            <section className={styles.sidebarSection} aria-label="Main navigation panel">
+              <p className={styles.sidebarSectionTitle}>Main Navigation</p>
+              <div className={styles.sidebarGroup}>
+                {mainNavItems.map((item) => (
+                  <div key={item.to} className={styles.navGroup}>
+                    <NavLink
+                      to={item.to}
+                      aria-current={isNavItemActive(item) ? "page" : undefined}
+                      className={isNavItemActive(item) ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink}
+                    >
+                      {item.label}
+                    </NavLink>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {notesNavItem ? (
+              <section className={styles.sidebarSection} aria-label="Notes panel">
+                <p className={styles.sidebarSectionTitle}>Notes</p>
+                <div className={`${styles.sidebarGroup} ${styles.notesGroup}`}>
+                  <div className={styles.navGroup}>
+                    <NavLink
+                      to={notesNavItem.to}
+                      aria-current={isNavItemActive(notesNavItem) ? "page" : undefined}
+                      className={
+                        isNavItemActive(notesNavItem)
+                          ? `${styles.navLink} ${styles.navLinkActive}`
+                          : styles.navLink
+                      }
+                    >
+                      {notesNavItem.label}
+                    </NavLink>
+                    <div className={styles.sidebarCreate}>
+                      <button
+                        type="button"
+                        className="primary-button"
+                        disabled={isInNotesEditorMode}
+                        onClick={() =>
+                          navigate(ROUTES.notesNew, {
+                            state: { returnTo: createReturnTo },
+                          })
                         }
                       >
-                        {child.label}
-                      </NavLink>
-                    ))}
+                        Create New
+                      </button>
+                    </div>
+                    {notesNavItem.children?.length ? (
+                      <div className={styles.subnav} aria-label={`${notesNavItem.label} navigation`}>
+                        {notesNavItem.children.map((child) => (
+                          <NavLink
+                            key={child.to}
+                            to={child.to}
+                            className={({ isActive }) =>
+                              isActive ? `${styles.subnavLink} ${styles.subnavLinkActive}` : styles.subnavLink
+                            }
+                          >
+                            {child.label}
+                          </NavLink>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
-            ))}
+                </div>
+              </section>
+            ) : null}
           </nav>
         </aside>
 
